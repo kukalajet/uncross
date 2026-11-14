@@ -11,14 +11,14 @@ decisions and the reasons behind them.
 
 These must not be broken.
 
-1. **The matching core is pure.** `@uncross/core` is plain synchronous
-   TypeScript: `(state, command) -> (state, events)`. No Effect imports, no I/O,
-   no clock reads, no randomness, no async. Timestamps and sequence numbers
-   arrive inside the command.
+1. **The matching core is pure logic.** `@uncross/core` is plain synchronous
+   TypeScript: `apply(book, command)` updates the book in place and returns the
+   events. No Effect imports, no I/O, no clock reads, no randomness, no async.
+   Timestamps and sequence numbers arrive inside the command.
 2. **Determinism.** The same sequence of commands must always produce the same
    sequence of events, byte for byte.
-3. **Integers only for money.** Prices and quantities are fixed-point integers.
-   Never floats.
+3. **Integers only for money.** A price counts the instrument's ticks and a
+   quantity counts its lots, held in `number` as safe integers. Never floats.
 4. **Stages talk only through sequenced messages** in the language-neutral
    binary format defined in `@uncross/protocol`. No rich TypeScript objects
    cross a stage boundary.
@@ -30,12 +30,8 @@ These must not be broken.
 
 ## Packages
 
-Under `packages/`, built in this order:
-
-- `@uncross/core` - order book and matching function (no Effect)
-- `@uncross/protocol` - command and event wire formats
-- `@uncross/runtime` - Effect shell: gateway, sequencer, journal, publishers
-- `@uncross/sim` - agent-based market simulator and load generator
+Place exchange code where the "The exchange" section of `ARCHITECTURE.md` says;
+`docs/DESIGN.md` gives the build order, starting with `@uncross/core`.
 
 ## Testing
 

@@ -1,7 +1,6 @@
 # Uncross - design notes
 
-Status: initial design, nothing built yet. Captured from a planning conversation
-on 2026-11-14.
+Status: initial design. Captured from a planning conversation on 2026-11-14.
 
 ## What it is
 
@@ -59,9 +58,9 @@ sequenced, journaled command stream.
 
 ## Design rules
 
-1. The engine is a pure function `(state, command) -> (state, events)`: no I/O,
-   no clock, no randomness, no async. Time and sequence numbers arrive in the
-   command.
+1. The engine is pure logic: `apply(book, command)` updates the book in place
+   and returns the events, with no I/O, no clock, no randomness and no async.
+   Time and sequence numbers arrive in the command.
 2. Commands in, events out, both sequenced.
 3. The boundary between stages is a language-neutral binary wire format
    (candidates: SBE, FlatBuffers, or a hand-rolled fixed layout), with integer
@@ -106,24 +105,46 @@ deterministic tests.
   gains little, because the latency problem is tail latency from GC and the
   event loop across the whole hot path, not matching throughput.
 
-## Decisions to make early (hard to defer)
+## Early decisions
 
-- Fixed-point representation for prices and quantities (scale, width, bigint vs
-  number).
+Decided on 2026-11-14:
+
+- **Units.** A price is an integer count of the instrument's ticks and a
+  quantity an integer count of its lots. The gateway converts with the tick and
+  lot sizes from reference data, so core never handles decimals and an off-tick
+  price cannot be expressed.
+- **Width.** Prices and quantities are `number`s holding safe integers (at most
+  2^53 - 1), and the edges reject anything larger. `bigint` would cover Rust's
+  full `i64` range, but it allocates on every operation and mixes with neither
+  `number` nor JSON. A Rust port uses `i64` within the same bound.
+- **State.** The engine owns its order book and updates it in place:
+  `apply(book, command)` returns only the events, as an LMAX business logic
+  processor or a Rust `&mut self` method does. Replay rebuilds the state, so
+  determinism needs no immutability, and core needs no persistent data
+  structures, which it could not import.
+
+Still open, and hard to defer:
+
 - The wire format.
 - Threading and process model.
 - Whether risk checks sit before or after the sequencer.
 
 ## Packages and build order
 
-1. `@uncross/core` - order book and matching function.
-2. `@uncross/protocol` - command and event formats.
-3. `@uncross/runtime` - sequencer, journal, gateway, publishers in Effect.
-4. `@uncross/sim` - agent-based simulator: one fiber per trader, using Harris's
-   trader types (informed traders, noise traders, value traders, dealers, order
-   anticipators, bluffers). Doubles as load generator and test harness.
+`ARCHITECTURE.md` places each piece. They are built in this order:
 
-Start with one repo and one package; split when there is a reason.
+1. `@uncross/core` (`packages/core/`) - order book and matching function.
+2. `@uncross/protocol` (`packages/protocol/`) - command and event formats.
+3. The stages in Effect: their ports in `@uncross/application`, the engine
+   adapter in `packages/engine/`, sequencing and the journal in
+   `packages/journal/`, and the gateway, pipeline and publishers in
+   `apps/exchange/`.
+4. The simulator in `apps/sim/` - agent-based: one fiber per trader, using
+   Harris's trader types (informed traders, noise traders, value traders,
+   dealers, order anticipators, bluffers). Doubles as load generator and test
+   harness.
+
+Each package is created when its first code lands.
 
 Possible later additions: a market-maker bot inside the simulator; a transaction
 cost analyzer (effective spread, realized spread, price impact, implementation

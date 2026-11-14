@@ -13,8 +13,8 @@ from: the API, the worker and the users example. The exchange follows the same
 rules (contracts in `application`, adapters implement them, composition roots
 choose), with the boundaries below. `docs/DESIGN.md` gives the reasons.
 
-Status: planned. None of these packages exists yet; correct this section as the
-code lands.
+Status: `packages/core/` holds only its purity rules so far; the rest is
+planned. Correct this section as the code lands.
 
 ```text
 exchange stages (apps/exchange) --> application --> core
@@ -41,8 +41,11 @@ Rules that the web application does not have:
 - `core` is stricter than `domain`. `domain` may use Effect's `Schema`; `core`
   imports nothing, not even `effect`, and has no I/O, clock, randomness or
   async. It is the code a Rust engine replaces, and it must give the same events
-  for the same commands, byte for byte. Lint should reject any import in
-  `packages/core/` that is not relative.
+  for the same commands, byte for byte. Lint enforces this in `packages/core/`:
+  it rejects every import that is not relative, and the globals that read the
+  clock, make randomness, defer work or reach the host. `purity-canary.ts`
+  breaks each of these rules once, so `pnpm check` fails if one stops applying.
+  No lint rule bans the `async` keyword itself; review covers it.
 - Stages exchange `protocol` bytes, never TypeScript objects. A port between
   stages takes and returns encoded commands and events, so an adapter in another
   language or process fits it unchanged.

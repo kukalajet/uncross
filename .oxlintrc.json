@@ -220,6 +220,77 @@
       }
     },
     {
+      "files": ["packages/core/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^\\.{1,2}/.*\\.[cm]?jsx?$",
+                "message": "Node runs the .ts files directly and does not map .js to .ts; end relative imports in .ts."
+              },
+              {
+                "regex": "^[^.]",
+                "message": "@uncross/core imports only its own files, not even effect or node: built-ins, so that a Rust engine can replace it."
+              }
+            ]
+          }
+        ],
+        "eslint/no-restricted-globals": [
+          "error",
+          {
+            "name": "Date",
+            "message": "@uncross/core never reads the clock; the timestamp arrives in the command."
+          },
+          {
+            "name": "performance",
+            "message": "@uncross/core never reads the clock; the timestamp arrives in the command."
+          },
+          {
+            "name": "crypto",
+            "message": "@uncross/core is deterministic: the same commands give the same events, so it has no randomness."
+          },
+          {
+            "name": "Promise",
+            "message": "@uncross/core is synchronous: apply handles a command completely before it returns."
+          },
+          {
+            "name": "queueMicrotask",
+            "message": "@uncross/core is synchronous: apply handles a command completely before it returns."
+          },
+          {
+            "name": "setImmediate",
+            "message": "@uncross/core is synchronous: apply handles a command completely before it returns."
+          },
+          {
+            "name": "setInterval",
+            "message": "@uncross/core is synchronous: apply handles a command completely before it returns."
+          },
+          {
+            "name": "setTimeout",
+            "message": "@uncross/core is synchronous: apply handles a command completely before it returns."
+          },
+          {
+            "name": "fetch",
+            "message": "@uncross/core does no I/O and never reads its host; its inputs arrive in the command."
+          },
+          {
+            "name": "process",
+            "message": "@uncross/core does no I/O and never reads its host; its inputs arrive in the command."
+          }
+        ],
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "@uncross/core is deterministic: the same commands give the same events, so it has no randomness."
+          }
+        ]
+      }
+    },
+    {
       "files": [
         "**/test/**",
         "**/*.test.ts",
