@@ -70,7 +70,7 @@ describe("PgClientLive", () => {
         Effect.succeed(client.config.applicationName),
       ).pipe(Effect.provide(pgClientFor(port)));
 
-      assert.strictEqual(applicationName, "node-effect-template");
+      assert.strictEqual(applicationName, "uncross");
       assert.strictEqual(connections(), 0);
     }),
   );

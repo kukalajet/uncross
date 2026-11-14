@@ -1,6 +1,6 @@
 import { Cause, Effect, Predicate, Schema } from "effect";
 
-const PersistenceFailureTypeId = "~@node-effect/application/PersistenceFailure";
+const PersistenceFailureTypeId = "~@uncross/application/PersistenceFailure";
 
 // Database adapters derive these from the raw cause without copying
 // messages, SQL, parameters, or stored values.

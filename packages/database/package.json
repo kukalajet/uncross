@@ -1,5 +1,5 @@
 {
-  "name": "@node-effect/database",
+  "name": "@uncross/database",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,9 +9,9 @@
   "dependencies": {
     "@effect/platform-node": "catalog:",
     "@effect/sql-pg": "catalog:",
-    "@node-effect/application": "workspace:*",
-    "@node-effect/config": "workspace:*",
-    "@node-effect/domain": "workspace:*",
+    "@uncross/application": "workspace:*",
+    "@uncross/config": "workspace:*",
+    "@uncross/domain": "workspace:*",
     "drizzle-orm": "catalog:",
     "effect": "catalog:"
   }

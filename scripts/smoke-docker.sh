@@ -4,16 +4,16 @@
 # and worker connected as the non-superuser runtime role, liveness that
 # survives a database outage, the fail-fast worker's restart and recovery, and
 # data kept in the volume.
-# Build the image first (`docker build -t node-effect-template:local .`).
+# Build the image first (`docker build -t uncross:local .`).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-export APP_IMAGE=${APP_IMAGE:-node-effect-template:local}
+export APP_IMAGE=${APP_IMAGE:-uncross:local}
 export POSTGRES_DB=smoke_test POSTGRES_USER=smoke_test POSTGRES_PASSWORD=smoke_test
 export APP_DATABASE_USER=smoke_test_app APP_DATABASE_PASSWORD=smoke_test_app
 # The worker logs each successful pass at Debug, which wait_for_worker_pass reads.
 export API_PORT=0 COMPOSE_PROFILES='' WORKER_POLL_INTERVAL_MS=500 LOG_LEVEL=Debug
-project="node-effect-smoke-${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
+project="uncross-smoke-${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
 compose=(docker compose --env-file .env.example -f docker-compose.yml --profile app -p "$project")
 
 cleanup() {
@@ -117,7 +117,7 @@ test "$(docker inspect --format '{{.State.Status}} {{.RestartCount}}' "$worker_i
 # still open, are connected as the runtime role, which is no superuser and
 # belongs to no other role whose privileges it would inherit.
 application_sessions="from pg_stat_activity join pg_roles on rolname = usename
-  where application_name = 'node-effect-template'"
+  where application_name = 'uncross'"
 roles=$(psql_query "select string_agg(distinct usename || ' ' || rolsuper, ',') $application_sessions")
 test "$roles" = "$APP_DATABASE_USER false"
 test "$(psql_query "select count(distinct client_addr) $application_sessions")" -ge 2

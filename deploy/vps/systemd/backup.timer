@@ -1,5 +1,5 @@
 [Unit]
-Description=Nightly node-effect-template backup
+Description=Nightly uncross backup
 
 [Timer]
 OnCalendar=*-*-* 03:00:00

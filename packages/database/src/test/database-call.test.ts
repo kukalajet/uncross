@@ -4,7 +4,7 @@ import { Cause, Effect, Fiber, Schema } from "effect";
 import { SqlError } from "effect/sql";
 import { TestClock } from "effect/testing";
 
-import { persistenceFailureFields } from "@node-effect/application";
+import { persistenceFailureFields } from "@uncross/application";
 
 import { databaseCalls } from "../database-call.ts";
 

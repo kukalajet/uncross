@@ -1,14 +1,14 @@
 {
-  "name": "@node-effect/api",
+  "name": "@uncross/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "dependencies": {
     "@effect/platform-node": "catalog:",
-    "@node-effect/application": "workspace:*",
-    "@node-effect/config": "workspace:*",
-    "@node-effect/database": "workspace:*",
-    "@node-effect/domain": "workspace:*",
+    "@uncross/application": "workspace:*",
+    "@uncross/config": "workspace:*",
+    "@uncross/database": "workspace:*",
+    "@uncross/domain": "workspace:*",
     "effect": "catalog:"
   }
 }

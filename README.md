@@ -1,9 +1,14 @@
-# Node Effect backend template
+# Uncross
 
-Reusable backend starter: Node.js 26, Effect 4, PostgreSQL and Drizzle, with an
-HTTP API, a persistent worker, and a production deployment to a single VPS
-behind Cloudflare Tunnel. The users feature and the polling job are examples to
-replace with your own.
+A small exchange (order matching system) in TypeScript with Effect, shaped so
+its performance-critical stages can later be rewritten in Rust without redesign.
+[docs/DESIGN.md](./docs/DESIGN.md) records the design decisions and the reasons
+behind them.
+
+The workspace started from a backend template: Node.js 26, Effect 4, PostgreSQL
+and Drizzle, with an HTTP API, a persistent worker, and a production deployment
+to a single VPS behind Cloudflare Tunnel. The users feature and the polling job
+are the template's examples, to be replaced by the exchange.
 
 Node runs the TypeScript sources directly: there is no build step. Packages
 follow dependency boundaries and application code is grouped by feature. See
@@ -28,24 +33,14 @@ that lint cannot check.
 
 ## Getting started
 
-After creating a repository from this template, give it its own name before
-making other changes:
-
 ```sh
-pnpm run init my-project
 cp .env.example .env
 pnpm install
 docker compose up -d --wait postgresql
 pnpm db:migrate
 ```
 
-- `pnpm run init` rewrites the package scope, database names, image and Compose
-  project names, and service keys in every text file, then reformats the files
-  it changed, because the new name changes line lengths. pnpm installs the
-  dependencies first when `node_modules` is missing. Use `pnpm run init`:
-  `pnpm init` is pnpm's own command.
-- `pnpm install` links the renamed workspace packages and installs the Git
-  hooks.
+- `pnpm install` links the workspace packages and installs the Git hooks.
 - Keep real secrets out of committed files; `.env` is ignored by Git.
 
 Then run the applications in separate terminals:
@@ -283,7 +278,7 @@ anything leaves the process.
 | `pnpm check`                          | Format check, lint, type check, migration drift check and unit tests: what CI and the image build run |
 | `pnpm check:static`                   | shellcheck, actionlint and zizmor from pinned Docker images: what CI's `static` job runs              |
 | `pnpm smoke:docker`                   | Smoke-tests a built image against a real PostgreSQL                                                   |
-| `pnpm scan:image [image]`             | Scans a built image with Grype as CI does; the default image is `node-effect-template:local`          |
+| `pnpm scan:image [image]`             | Scans a built image with Grype as CI does; the default image is `uncross:local`                       |
 
 ## Toolchain
 
@@ -312,17 +307,17 @@ anything leaves the process.
 - **Config-only lint guards** in `.oxlintrc.json` reject `console`,
   `process.env` (read `AppConfig`) and `Effect.run*` (run effects with
   `NodeRuntime.runMain` in an entry point) in `apps/` and `packages/`. They
-  reject imports of `@node-effect/database` and `effect/sql` in every folder
-  under `apps/*/src/`, tests included; only the composition roots directly in
-  `src/` may import them. Everywhere, they reject non-null assertions (`x!`),
+  reject imports of `@uncross/database` and `effect/sql` in every folder under
+  `apps/*/src/`, tests included; only the composition roots directly in `src/`
+  may import them. Everywhere, they reject non-null assertions (`x!`),
   `{…} as T` object literal assertions and shadowed names. Tests,
   `*.postgres.ts`, `*.fixtures.ts` and `postgres.setup.ts` may use `console`,
   `process.env`, `Effect.run*` and `!`. The `Effect.run*` guard matches the call
   as written, so `import { runPromise } from "effect/Effect"` slips past it.
 - **Formatting** follows `.oxfmtrc.json`: width 80, double quotes, semicolons,
   trailing commas, and Markdown prose wrapped at 80 columns. Import sorting is
-  lint's job, in five groups: `node:` built-ins, packages, `@node-effect/*`,
-  `../`, then `./`.
+  lint's job, in five groups: `node:` built-ins, packages, `@uncross/*`, `../`,
+  then `./`.
 - **Type checking** uses the single root `tsconfig.json` (strict,
   `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, and unused-code
   checks). `pnpm typecheck` runs TypeScript 7's `tsc` as `@effect/tsgo` builds
@@ -486,7 +481,7 @@ the one-shot worker and migrations:
 ### Smoke test
 
 ```sh
-docker build -t node-effect-template:local .
+docker build -t uncross:local .
 pnpm smoke:docker
 ```
 
@@ -565,7 +560,7 @@ with an `ignore` rule in [`.grype.yaml`](./.grype.yaml) that names the
 vulnerability, the package version and a dated reason; the file has an example.
 
 To reproduce the scan on a local build, run `pnpm scan:image` after
-`docker build -t node-effect-template:local .`, or pass another image's name.
+`docker build -t uncross:local .`, or pass another image's name.
 [`scripts/scan-image.sh`](./scripts/scan-image.sh) runs the Grype version that
 `grype-version` pins, from an image pinned by digest, with the same settings.
 Grype reads a saved copy of the image, not the Docker socket, and downloads the
@@ -738,11 +733,10 @@ the tests run, until the TypeScript group also carries an `@effect/tsgo`
 release, three days old, that ships it. The type check then prints "No packaged
 Effect TypeScript executable matches installed TypeScript …" and what to do.
 
-Renovate does not manage the image built from this repository
-(`node-effect-template:local` and the commit-tagged release images), the
-`ubuntu-latest` runners, the Grype vulnerability database (each scan downloads
-the current one), or the Debian packages inside the base images, which arrive
-with a new base image digest.
+Renovate does not manage the image built from this repository (`uncross:local`
+and the commit-tagged release images), the `ubuntu-latest` runners, the Grype
+vulnerability database (each scan downloads the current one), or the Debian
+packages inside the base images, which arrive with a new base image digest.
 
 ## Prerelease notes
 

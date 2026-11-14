@@ -5,7 +5,7 @@ import {
   isPersistenceFailure,
   persistenceFailureFields,
   persistenceFailureReport,
-} from "@node-effect/application";
+} from "@uncross/application";
 
 // A persistence failure of the test's own, so the test does not depend on the
 // users example.

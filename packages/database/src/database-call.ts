@@ -1,6 +1,6 @@
 import { type Duration, Effect, Schema } from "effect";
 
-import { AppConfig } from "@node-effect/config";
+import { AppConfig } from "@uncross/config";
 
 import { diagnosticsFromCause, findSqlError } from "./error-diagnostics.ts";
 import { databaseCallTimeout } from "./postgres.ts";

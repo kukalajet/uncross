@@ -14,6 +14,6 @@ class DatabaseHealth extends Context.Service<
   {
     readonly check: Effect.Effect<void, DatabaseHealthError>;
   }
->()("@node-effect/application/DatabaseHealth") {}
+>()("@uncross/application/DatabaseHealth") {}
 
 export { DatabaseHealth, DatabaseHealthError };

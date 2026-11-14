@@ -5,7 +5,7 @@ import {
   DatabaseHealthError,
   type PersistenceFailure,
   persistenceFailureFields,
-} from "@node-effect/application";
+} from "@uncross/application";
 
 import { databaseFailure, healthFailure } from "../http-errors.ts";
 

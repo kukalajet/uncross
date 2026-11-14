@@ -1,7 +1,7 @@
 import type { Cause } from "effect";
 import { Effect } from "effect";
 
-import { reportFailure } from "@node-effect/application";
+import { reportFailure } from "@uncross/application";
 
 // Logs a failure once, as every entry point does: a persistence failure by its
 // safe diagnostics, also when one arrives as a defect, and nothing for

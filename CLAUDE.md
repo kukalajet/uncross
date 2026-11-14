@@ -1,3 +1,51 @@
+# Uncross
+
+A small exchange (order matching system) written in TypeScript with Effect,
+designed so that performance-critical stages can later be rewritten in Rust
+without redesign.
+
+Read `docs/DESIGN.md` before making architectural changes. It records the
+decisions and the reasons behind them.
+
+## Project rules
+
+These must not be broken.
+
+1. **The matching core is pure.** `@uncross/core` is plain synchronous
+   TypeScript: `(state, command) -> (state, events)`. No Effect imports, no I/O,
+   no clock reads, no randomness, no async. Timestamps and sequence numbers
+   arrive inside the command.
+2. **Determinism.** The same sequence of commands must always produce the same
+   sequence of events, byte for byte.
+3. **Integers only for money.** Prices and quantities are fixed-point integers.
+   Never floats.
+4. **Stages talk only through sequenced messages** in the language-neutral
+   binary format defined in `@uncross/protocol`. No rich TypeScript objects
+   cross a stage boundary.
+5. **Every stage sits behind an Effect service interface**, so an alternative
+   implementation (e.g. Rust via napi-rs or a separate process) is just another
+   `Layer`.
+6. **Journal before processing.** A command is sequenced and written to the
+   journal before the engine sees it.
+
+## Packages
+
+Under `packages/`, built in this order:
+
+- `@uncross/core` - order book and matching function (no Effect)
+- `@uncross/protocol` - command and event wire formats
+- `@uncross/runtime` - Effect shell: gateway, sequencer, journal, publishers
+- `@uncross/sim` - agent-based market simulator and load generator
+
+## Testing
+
+- `core` is tested heavily before anything is built on it.
+- Use `Schema` to validate at the edges and decode into the flat internal
+  representation.
+- Use `TestClock` for anything time-dependent; tests must be deterministic.
+- Journal replay is the reference test: recorded commands in, identical events
+  out.
+
 ## Code style
 
 Follow `READABILITY.md` when writing or changing code. In particular: never
@@ -18,14 +66,14 @@ Lint (`.oxlintrc.json`) also requires:
 - A blank line before `return`, around multi-line blocks, and around any other
   multi-line statement. A `type X = typeof X…` alias may sit directly under the
   declaration it reads.
-- Imports in five groups: `node:` built-ins, packages, `@node-effect/*`, `../`,
-  then `./`.
+- Imports in five groups: `node:` built-ins, packages, `@uncross/*`, `../`, then
+  `./`.
 - No module mocking: replace a service with `Layer.succeed` or `Layer.mock`.
 - No `console`, `process.env` or `Effect.run*` in `apps/` or `packages/` outside
   tests: log with Effect, read `AppConfig`, and run effects only with
   `NodeRuntime.runMain` in an entry point, which provides `LoggingLive` from
-  `@node-effect/config` (JSON lines at `LOG_LEVEL`).
-- No `@node-effect/database` or `effect/sql` imports in any folder under
+  `@uncross/config` (JSON lines at `LOG_LEVEL`).
+- No `@uncross/database` or `effect/sql` imports in any folder under
   `apps/*/src/`, tests included. Provide adapters in the composition roots
   directly in `src/` (`request-services-live.ts`, `worker-runtime.ts`).
 - No non-null assertions (`x!`), no `{…} as T` (annotate the variable or use

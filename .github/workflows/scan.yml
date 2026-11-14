@@ -25,12 +25,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Build image
-        run: docker build --tag node-effect-template:scan .
+        run: docker build --tag uncross:scan .
       # The same scan as ci.yml's smoke job: keep the two the same.
       - name: Scan the image
         uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         with:
-          image: docker:node-effect-template:scan
+          image: docker:uncross:scan
           # renovate: datasource=github-releases depName=anchore/grype
           grype-version: v0.121.0
           config: .grype.yaml

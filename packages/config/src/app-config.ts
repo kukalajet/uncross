@@ -36,7 +36,7 @@ const appConfig = Config.all({
 class AppConfig extends Context.Service<
   AppConfig,
   Readonly<Config.Success<typeof appConfig>>
->()("@node-effect/config/AppConfig") {
+>()("@uncross/config/AppConfig") {
   // Reads `process.env` through the default ConfigProvider. Tests and tools
   // can replace the provider with `ConfigProvider.layer`.
   static readonly layer = Layer.effect(AppConfig, appConfig);

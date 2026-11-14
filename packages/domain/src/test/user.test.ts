@@ -1,12 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Schema } from "effect";
 
-import {
-  CreateUserSchema,
-  DisplayName,
-  Email,
-  UserId,
-} from "@node-effect/domain";
+import { CreateUserSchema, DisplayName, Email, UserId } from "@uncross/domain";
 
 const decodeEmail = Schema.decodeUnknownSync(Email);
 const decodeDisplayName = Schema.decodeUnknownSync(DisplayName);

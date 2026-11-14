@@ -3,8 +3,8 @@ import { Console, ConfigProvider, Effect, Layer, Schema } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { TestConsole } from "effect/testing";
 
-import { persistenceFailureFields } from "@node-effect/application";
-import { LoggingLive } from "@node-effect/config";
+import { persistenceFailureFields } from "@uncross/application";
+import { LoggingLive } from "@uncross/config";
 
 import { accessLog } from "../access-log.ts";
 

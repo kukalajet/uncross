@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect";
 import { HttpApiBuilder } from "effect/http-api";
 
-import { UserRepository } from "@node-effect/application";
-import type { CreateUser } from "@node-effect/domain";
+import { UserRepository } from "@uncross/application";
+import type { CreateUser } from "@uncross/domain";
 
 import { Api } from "../api-contract.ts";
 import { RequestValidationLive } from "../api-middleware.ts";

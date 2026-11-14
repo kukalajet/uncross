@@ -238,16 +238,16 @@ importers:
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)
-      '@node-effect/application':
+      '@uncross/application':
         specifier: workspace:*
         version: link:../../packages/application
-      '@node-effect/config':
+      '@uncross/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@node-effect/database':
+      '@uncross/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@node-effect/domain':
+      '@uncross/domain':
         specifier: workspace:*
         version: link:../../packages/domain
       effect:
@@ -259,13 +259,13 @@ importers:
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)
-      '@node-effect/application':
+      '@uncross/application':
         specifier: workspace:*
         version: link:../../packages/application
-      '@node-effect/config':
+      '@uncross/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@node-effect/database':
+      '@uncross/database':
         specifier: workspace:*
         version: link:../../packages/database
       effect:
@@ -274,7 +274,7 @@ importers:
 
   packages/application:
     dependencies:
-      '@node-effect/domain':
+      '@uncross/domain':
         specifier: workspace:*
         version: link:../domain
       effect:
@@ -295,13 +295,13 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)
-      '@node-effect/application':
+      '@uncross/application':
         specifier: workspace:*
         version: link:../application
-      '@node-effect/config':
+      '@uncross/config':
         specifier: workspace:*
         version: link:../config
-      '@node-effect/domain':
+      '@uncross/domain':
         specifier: workspace:*
         version: link:../domain
       drizzle-orm:

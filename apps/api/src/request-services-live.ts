@@ -5,7 +5,7 @@ import {
   DatabaseLive,
   PgClientLive,
   UserRepositoryLive,
-} from "@node-effect/database";
+} from "@uncross/database";
 
 // The adapters behind the application ports the routes use, on one pool. Add a
 // feature's repository here when its routes need it.

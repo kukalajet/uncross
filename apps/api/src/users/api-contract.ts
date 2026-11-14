@@ -6,7 +6,7 @@ import {
   OpenApi,
 } from "effect/http-api";
 
-import { CreateUserSchema, UserId, UserSchema } from "@node-effect/domain";
+import { CreateUserSchema, UserId, UserSchema } from "@uncross/domain";
 
 import { RequestValidation } from "../api-middleware.ts";
 import {

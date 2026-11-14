@@ -10,7 +10,7 @@
 #    a different quarter each week.
 #
 # Reads the repository settings and VERIFY_HEARTBEAT_URL from
-# /etc/node-effect-template/restic.env, and reports like bin/backup.
+# /etc/uncross/restic.env, and reports like bin/backup.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 # shellcheck source=deploy/vps/bin/heartbeat.sh
@@ -18,7 +18,7 @@ source bin/heartbeat.sh
 heartbeat_init "${VERIFY_HEARTBEAT_URL:-}"
 
 # The path bin/backup writes the dump to, which restic recorded.
-dump=/var/backups/node-effect-template/database.dump
+dump=/var/backups/uncross/database.dump
 # The backup's own heartbeat alerts after the same time without a backup.
 max_snapshot_age_hours=26
 mebibyte=$((1024 * 1024))
@@ -27,7 +27,7 @@ mebibyte=$((1024 * 1024))
 # pg_restore and is never written to disk; it is compressed and many times
 # smaller than the database, so it is no measure of the space needed.
 restore_headroom_bytes=$((1024 * mebibyte))
-container=node-effect-template-verify-backup
+container=uncross-verify-backup
 # The restore container's PostgreSQL starts within seconds; this is a ceiling.
 ready_timeout_seconds=120
 # A quarter of the data each week reads every pack about once a month. restic
@@ -94,7 +94,7 @@ fi
 # 2. The restore. The container has no network, and limits that leave
 # production its share of the host. Its name is fixed, so a container left by a
 # run that was killed fails the next run instead of piling up: remove it with
-# `docker rm -f -v node-effect-template-verify-backup`. The copy is thrown
+# `docker rm -f -v uncross-verify-backup`. The copy is thrown
 # away, so commits do not wait for the WAL to reach the disk, and the WAL leaves
 # out full pages. fsync stays on: without it PostgreSQL also stops starting
 # writeback early, the restore's dirty pages fill the memory limit, and the

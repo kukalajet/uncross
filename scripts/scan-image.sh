@@ -2,7 +2,7 @@
 # Scans a local image the way CI's scan does (ci.yml's smoke job and scan.yml):
 # the same Grype version, .grype.yaml, and failure on High and Critical
 # vulnerabilities that have a fix. Build the image first
-# (`docker build -t node-effect-template:local .`), or name another image.
+# (`docker build -t uncross:local .`), or name another image.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 # renovate: datasource=docker depName=anchore/grype
 grype_image=anchore/grype:v0.121.0@sha256:621d56d1d68106b787022c81546f7e0a36202a25d1239f0c20195fab8c16f7ea
 
-image=${1:-node-effect-template:local}
+image=${1:-uncross:local}
 archive_directory=$(mktemp -d)
 trap 'rm -rf "$archive_directory"' EXIT
 

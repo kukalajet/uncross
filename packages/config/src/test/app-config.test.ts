@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Effect, Exit, Layer, Redacted } from "effect";
 
-import { AppConfig, appConfig } from "@node-effect/config";
+import { AppConfig, appConfig } from "@uncross/config";
 
 const environment = (env: Record<string, string>) =>
   ConfigProvider.fromEnv({ env });

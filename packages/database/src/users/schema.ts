@@ -4,7 +4,7 @@ import {
 } from "drizzle-orm/effect-schema";
 import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-import { DisplayName, Email, UserId } from "@node-effect/domain";
+import { DisplayName, Email, UserId } from "@uncross/domain";
 
 const userEmailUniqueConstraint = "users_email_key";
 

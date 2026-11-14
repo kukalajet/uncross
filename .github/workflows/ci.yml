@@ -72,12 +72,12 @@ jobs:
           context: .
           load: true
           platforms: linux/amd64
-          tags: node-effect-template:ci
+          tags: uncross:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Smoke-test the image
         env:
-          APP_IMAGE: node-effect-template:ci
+          APP_IMAGE: uncross:ci
         run: bash scripts/smoke-docker.sh
       # Fails on High and Critical vulnerabilities that have a fix, printing a
       # table of every fixable one. .grype.yaml says how to accept a finding.
@@ -85,7 +85,7 @@ jobs:
       - name: Scan the image
         uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         with:
-          image: docker:node-effect-template:ci
+          image: docker:uncross:ci
           # renovate: datasource=github-releases depName=anchore/grype
           grype-version: v0.121.0
           config: .grype.yaml
@@ -104,17 +104,17 @@ jobs:
       postgresql:
         image: postgres:18.6-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
         env:
-          POSTGRES_DB: node_effect
-          POSTGRES_USER: node_effect
-          POSTGRES_PASSWORD: node_effect
+          POSTGRES_DB: uncross
+          POSTGRES_USER: uncross
+          POSTGRES_PASSWORD: uncross
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -h 127.0.0.1 -U node_effect -d node_effect"
+          --health-cmd "pg_isready -h 127.0.0.1 -U uncross -d uncross"
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
       VP_GIT_HOOKS: "0"
-      DATABASE_URL: postgresql://node_effect:node_effect@127.0.0.1:5432/node_effect
+      DATABASE_URL: postgresql://uncross:uncross@127.0.0.1:5432/uncross
       API_HOST: 127.0.0.1
       API_PORT: "8000"
       WORKER_POLL_INTERVAL_MS: "5000"

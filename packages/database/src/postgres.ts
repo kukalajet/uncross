@@ -2,9 +2,9 @@ import { PgClient } from "@effect/sql-pg";
 import * as PgDrizzle from "drizzle-orm/effect-postgres";
 import { Context, Duration, Effect, Layer } from "effect";
 
-import { AppConfig } from "@node-effect/config";
+import { AppConfig } from "@uncross/config";
 
-const applicationName = "node-effect-template";
+const applicationName = "uncross";
 const connectTimeout = "5 seconds";
 
 // With every pooled connection busy, a query waits this long for one and then
@@ -98,7 +98,7 @@ const databaseEffect = PgDrizzle.makeWithDefaults();
 class Database extends Context.Service<
   Database,
   Effect.Success<typeof databaseEffect>
->()("@node-effect/database/Database") {}
+>()("@uncross/database/Database") {}
 
 type DatabaseTransaction = Parameters<
   Parameters<Database["Service"]["transaction"]>[0]

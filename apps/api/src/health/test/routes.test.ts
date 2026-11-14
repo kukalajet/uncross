@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 
-import { DatabaseHealth, DatabaseHealthError } from "@node-effect/application";
+import { DatabaseHealth, DatabaseHealthError } from "@uncross/application";
 
 import { Api } from "../../api-contract.ts";
 import { serveGroup } from "../../test/group-server.fixtures.ts";

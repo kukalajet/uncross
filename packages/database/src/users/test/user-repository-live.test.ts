@@ -3,11 +3,8 @@ import { Effect, Fiber, Layer, Schema } from "effect";
 import { SqlError } from "effect/sql";
 import { TestClock } from "effect/testing";
 
-import {
-  UserRepository,
-  UserPersistenceFailure,
-} from "@node-effect/application";
-import { UserAlreadyExists, UserNotFound } from "@node-effect/domain";
+import { UserRepository, UserPersistenceFailure } from "@uncross/application";
+import { UserAlreadyExists, UserNotFound } from "@uncross/domain";
 
 import { DatabaseLive } from "../../postgres.ts";
 import { testAppConfig } from "../../test/app-config.fixtures.ts";

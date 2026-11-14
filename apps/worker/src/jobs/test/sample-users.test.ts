@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer, Logger, References } from "effect";
 
-import { UserRepository } from "@node-effect/application";
+import { UserRepository } from "@uncross/application";
 
 import { sampleUsersPass } from "../sample-users.ts";
 

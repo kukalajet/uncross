@@ -6,7 +6,7 @@ import {
   UserAlreadyExists,
   type UserIdType,
   UserNotFound,
-} from "@node-effect/domain";
+} from "@uncross/domain";
 
 import { persistenceFailureFields } from "../persistence-failure.ts";
 
@@ -31,6 +31,6 @@ class UserRepository extends Context.Service<
       limit: number,
     ) => Effect.Effect<ReadonlyArray<User>, UserPersistenceFailure>;
   }
->()("@node-effect/application/UserRepository") {}
+>()("@uncross/application/UserRepository") {}
 
 export { UserRepository, UserPersistenceFailure };

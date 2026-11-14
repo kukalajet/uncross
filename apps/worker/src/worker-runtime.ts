@@ -1,12 +1,12 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Effect, Layer } from "effect";
 
-import { AppConfig, LoggingLive } from "@node-effect/config";
+import { AppConfig, LoggingLive } from "@uncross/config";
 import {
   DatabaseLive,
   PgClientLive,
   UserRepositoryLive,
-} from "@node-effect/database";
+} from "@uncross/database";
 
 import { reportWorkerFailure } from "./worker-errors.ts";
 

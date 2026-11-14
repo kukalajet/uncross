@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 
-import { AppConfig } from "@node-effect/config";
+import { AppConfig } from "@uncross/config";
 
 import { pollJobs } from "./job-runner.ts";
 import { workerJobs } from "./jobs/worker-jobs.ts";

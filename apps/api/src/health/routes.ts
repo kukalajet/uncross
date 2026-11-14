@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { HttpApiBuilder } from "effect/http-api";
 
-import { DatabaseHealth } from "@node-effect/application";
+import { DatabaseHealth } from "@uncross/application";
 
 import { Api } from "../api-contract.ts";
 import { healthFailure } from "../http-errors.ts";

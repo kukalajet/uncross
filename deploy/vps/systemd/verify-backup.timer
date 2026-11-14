@@ -1,5 +1,5 @@
 [Unit]
-Description=Weekly node-effect-template backup check
+Description=Weekly uncross backup check
 
 [Timer]
 # Two hours after Sunday's nightly backup.

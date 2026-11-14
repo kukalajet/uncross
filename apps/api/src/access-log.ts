@@ -6,7 +6,7 @@ import {
   type HttpServerResponse,
 } from "effect/http";
 
-import { redactPersistenceFailures } from "@node-effect/application";
+import { redactPersistenceFailures } from "@uncross/application";
 
 // Compose's healthcheck and bin/release poll these every few seconds; only a
 // probe that fails is worth a line.

@@ -5,8 +5,8 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/http";
 
-import { reportFailure } from "@node-effect/application";
-import { AppConfig, LoggingLive } from "@node-effect/config";
+import { reportFailure } from "@uncross/application";
+import { AppConfig, LoggingLive } from "@uncross/config";
 
 import { accessLog } from "./access-log.ts";
 import { ApiRoutes } from "./app.ts";

@@ -11,7 +11,7 @@ import {
 // The most bytes an endpoint's JSON body may have. `withJsonBodyLimit` sets it
 // on the endpoint's contract, and `jsonBody` reads it from there.
 class JsonBodyLimit extends Context.Service<JsonBodyLimit, number>()(
-  "@node-effect/api/JsonBodyLimit",
+  "@uncross/api/JsonBodyLimit",
 ) {}
 
 // What jsonBody reads from an endpoint: its payloads and their types, its

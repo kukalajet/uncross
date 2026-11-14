@@ -3,7 +3,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Config, Effect, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 
-import type { RuntimeRole } from "@node-effect/config";
+import type { RuntimeRole } from "@uncross/config";
 
 import { diagnosticsFromCause } from "../error-diagnostics.ts";
 import { migrateDatabase } from "../migrate.ts";

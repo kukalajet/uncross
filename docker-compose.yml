@@ -1,7 +1,7 @@
 # Local stack. `docker compose up` starts PostgreSQL only; the `app` profile
 # adds migrate, api and worker, and the `tools` profile adds worker-once.
 x-app: &app
-  image: ${APP_IMAGE:-node-effect-template:local}
+  image: ${APP_IMAGE:-uncross:local}
   build:
     context: .
   # The application needs no Linux capabilities and writes only to /tmp.
@@ -18,8 +18,8 @@ x-app: &app
   # owner, POSTGRES_USER, which the PostgreSQL image makes a superuser.
   environment: &app-environment
     DATABASE_URL:
-      postgresql://${APP_DATABASE_USER:-node_effect_app}:${APP_DATABASE_PASSWORD:?Set
-      APP_DATABASE_PASSWORD in .env}@postgresql:5432/${POSTGRES_DB:-node_effect}
+      postgresql://${APP_DATABASE_USER:-uncross_app}:${APP_DATABASE_PASSWORD:?Set
+      APP_DATABASE_PASSWORD in .env}@postgresql:5432/${POSTGRES_DB:-uncross}
     DATABASE_STATEMENT_TIMEOUT_MS: ${DATABASE_STATEMENT_TIMEOUT_MS:-10000}
     API_HOST: 0.0.0.0
     API_PORT: "8000"
@@ -43,9 +43,9 @@ services:
       - /var/run/postgresql:uid=70,gid=70
       - /tmp:size=16m
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-node_effect}
+      POSTGRES_DB: ${POSTGRES_DB:-uncross}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_USER: ${POSTGRES_USER:-node_effect}
+      POSTGRES_USER: ${POSTGRES_USER:-uncross}
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
@@ -68,9 +68,9 @@ services:
     environment:
       <<: *app-environment
       DATABASE_URL:
-        postgresql://${POSTGRES_USER:-node_effect}:${POSTGRES_PASSWORD:?Set
-        POSTGRES_PASSWORD in .env}@postgresql:5432/${POSTGRES_DB:-node_effect}
-      APP_DATABASE_USER: ${APP_DATABASE_USER:-node_effect_app}
+        postgresql://${POSTGRES_USER:-uncross}:${POSTGRES_PASSWORD:?Set
+        POSTGRES_PASSWORD in .env}@postgresql:5432/${POSTGRES_DB:-uncross}
+      APP_DATABASE_USER: ${APP_DATABASE_USER:-uncross_app}
       APP_DATABASE_PASSWORD: ${APP_DATABASE_PASSWORD:?Set it in .env}
     depends_on:
       postgresql:

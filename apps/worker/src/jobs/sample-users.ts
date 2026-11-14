@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 
-import { UserRepository } from "@node-effect/application";
+import { UserRepository } from "@uncross/application";
 
 const sampleSize = 5;
 

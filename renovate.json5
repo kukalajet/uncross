@@ -23,7 +23,7 @@
   // A person reviews and merges every update.
   automerge: false,
   // The image docker-compose.yml builds from this repository.
-  ignoreDeps: ["node-effect-template"],
+  ignoreDeps: ["uncross"],
   customManagers: [
     {
       customType: "regex",

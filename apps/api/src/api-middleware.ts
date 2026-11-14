@@ -4,7 +4,7 @@ import { type HttpApiError, HttpApiMiddleware } from "effect/http-api";
 import { BadRequestResponse } from "./api-schemas.ts";
 
 class RequestValidation extends HttpApiMiddleware.Service<RequestValidation>()(
-  "@node-effect/api/RequestValidation",
+  "@uncross/api/RequestValidation",
   { error: BadRequestResponse.schema },
 ) {}
 

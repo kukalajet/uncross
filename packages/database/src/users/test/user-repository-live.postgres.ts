@@ -2,16 +2,13 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 
-import {
-  UserRepository,
-  UserPersistenceFailure,
-} from "@node-effect/application";
+import { UserRepository, UserPersistenceFailure } from "@uncross/application";
 import {
   CreateUserSchema,
   UserAlreadyExists,
   UserId,
   UserNotFound,
-} from "@node-effect/domain";
+} from "@uncross/domain";
 
 import { withMigratedDatabase } from "../../test/migrated-database.fixtures.ts";
 import { UserRepositoryLive } from "../user-repository-live.ts";

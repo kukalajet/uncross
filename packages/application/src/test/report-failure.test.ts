@@ -1,10 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { type Cause, Effect, Logger, Schema } from "effect";
 
-import {
-  persistenceFailureFields,
-  reportFailure,
-} from "@node-effect/application";
+import { persistenceFailureFields, reportFailure } from "@uncross/application";
 
 const sentinels = /SECRET_SENTINEL|SQL_SENTINEL|PARAM_SENTINEL/;
 

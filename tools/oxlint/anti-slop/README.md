@@ -14,5 +14,5 @@ The upstream project is MIT-licensed; see `LICENSE`.
 Ekze, and lets a `typeof` type alias stay attached to the declaration it reads;
 `max-loop-skips` and `no-inline-regex-match` enforce rules 3 and 1 of
 [READABILITY.md](../../../READABILITY.md). The Effect rule has one local
-customization: package aliases under `@node-effect/*` count as project-local imports
+customization: package aliases under `@uncross/*` count as project-local imports
 alongside relative paths.

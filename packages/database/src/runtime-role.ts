@@ -3,7 +3,7 @@ import { createHash, createHmac, pbkdf2Sync, randomBytes } from "node:crypto";
 import { Effect, Redacted, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 
-import type { RuntimeRole } from "@node-effect/config";
+import type { RuntimeRole } from "@uncross/config";
 
 class RuntimeRoleRefused extends Schema.TaggedError<RuntimeRoleRefused>()(
   "RuntimeRoleRefused",

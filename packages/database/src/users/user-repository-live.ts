@@ -1,16 +1,13 @@
 import { desc, eq } from "drizzle-orm";
 import { Effect, Layer } from "effect";
 
-import {
-  UserRepository,
-  UserPersistenceFailure,
-} from "@node-effect/application";
+import { UserRepository, UserPersistenceFailure } from "@uncross/application";
 import {
   type CreateUser,
   UserAlreadyExists,
   type UserIdType,
   UserNotFound,
-} from "@node-effect/domain";
+} from "@uncross/domain";
 
 import { repositoryCalls } from "../database-call.ts";
 import { Database } from "../postgres.ts";

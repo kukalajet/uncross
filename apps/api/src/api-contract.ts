@@ -5,7 +5,7 @@ import { UsersApi } from "./users/api-contract.ts";
 
 const Api = HttpApi.make("Api")
   .add(HealthApi, UsersApi)
-  .annotate(OpenApi.Title, "node-effect-template API")
+  .annotate(OpenApi.Title, "uncross API")
   .annotate(
     OpenApi.Description,
     "The schema-first contract for every API endpoint.",

@@ -1,13 +1,13 @@
 {
-  "name": "@node-effect/worker",
+  "name": "@uncross/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "dependencies": {
     "@effect/platform-node": "catalog:",
-    "@node-effect/application": "workspace:*",
-    "@node-effect/config": "workspace:*",
-    "@node-effect/database": "workspace:*",
+    "@uncross/application": "workspace:*",
+    "@uncross/config": "workspace:*",
+    "@uncross/database": "workspace:*",
     "effect": "catalog:"
   }
 }

@@ -1,16 +1,13 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer, Schema } from "effect";
 
-import {
-  UserRepository,
-  UserPersistenceFailure,
-} from "@node-effect/application";
+import { UserRepository, UserPersistenceFailure } from "@uncross/application";
 import {
   type User,
   UserAlreadyExists,
   UserId,
   UserNotFound,
-} from "@node-effect/domain";
+} from "@uncross/domain";
 
 import { Api } from "../../api-contract.ts";
 import { serveGroup } from "../../test/group-server.fixtures.ts";

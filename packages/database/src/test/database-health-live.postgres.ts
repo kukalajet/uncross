@@ -1,7 +1,7 @@
 import { describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 
-import { DatabaseHealth } from "@node-effect/application";
+import { DatabaseHealth } from "@uncross/application";
 
 import { DatabaseHealthLive } from "../database-health-live.ts";
 

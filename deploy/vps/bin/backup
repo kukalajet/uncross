@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Backs up PostgreSQL to the restic repository configured in
-# /etc/node-effect-template/restic.env. Runs as root from the backup service,
+# /etc/uncross/restic.env. Runs as root from the backup service,
 # and reports to HEARTBEAT_URL through bin/heartbeat.sh: the URL when the backup
 # succeeds, <URL>/fail with its last error lines as soon as it fails.
 set -euo pipefail
@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 source bin/heartbeat.sh
 heartbeat_init "${HEARTBEAT_URL:-}"
 
-out=/var/backups/node-effect-template
+out=/var/backups/uncross
 install -d -m 700 "$out"
 # A dump cut short takes disk until the next night's run replaces it.
 cleanup() {

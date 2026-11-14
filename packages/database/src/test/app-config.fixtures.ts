@@ -1,6 +1,6 @@
 import { ConfigProvider, type Context, Effect, Layer } from "effect";
 
-import { AppConfig, appConfig } from "@node-effect/config";
+import { AppConfig, appConfig } from "@uncross/config";
 
 // AppConfig with `appConfig`'s defaults, overridden by `overrides`, and a
 // database URL that adapter unit tests never connect to. It never reads the

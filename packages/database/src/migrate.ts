@@ -6,8 +6,8 @@ import { migrate } from "drizzle-orm/effect-postgres/migrator";
 import { Effect, Layer } from "effect";
 import { SqlError } from "effect/sql";
 
-import { reportFailure } from "@node-effect/application";
-import { AppConfig, LoggingLive, runtimeRoleConfig } from "@node-effect/config";
+import { reportFailure } from "@uncross/application";
+import { AppConfig, LoggingLive, runtimeRoleConfig } from "@uncross/config";
 
 import { diagnosticsFromCause } from "./error-diagnostics.ts";
 import { Database, DatabaseLive, MigrationPgClientLive } from "./postgres.ts";

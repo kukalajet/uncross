@@ -9,7 +9,7 @@ import {
 } from "effect";
 import { TestConsole } from "effect/testing";
 
-import { LoggingLive } from "@node-effect/config";
+import { LoggingLive } from "@uncross/config";
 
 // LoggingLive reading `env` instead of the process environment.
 const loggingLiveWith = (env: Record<string, string>) =>

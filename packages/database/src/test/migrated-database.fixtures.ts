@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { Config, Effect, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 
-import type { AppConfig } from "@node-effect/config";
+import type { AppConfig } from "@uncross/config";
 
 import {
   type Database,

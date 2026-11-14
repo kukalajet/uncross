@@ -10,7 +10,7 @@ import {
   Schema,
 } from "effect";
 
-import { persistenceFailureFields } from "@node-effect/application";
+import { persistenceFailureFields } from "@uncross/application";
 
 import { pollJobs, runJobsOnce } from "../job-runner.ts";
 import { reportWorkerFailure } from "../worker-errors.ts";

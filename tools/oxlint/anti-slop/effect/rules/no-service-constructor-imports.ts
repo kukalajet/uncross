@@ -9,7 +9,7 @@ function isProjectLocalImport(source: string): boolean {
 	return (
 		source.startsWith("./") ||
 		source.startsWith("../") ||
-		source.startsWith("@node-effect/")
+		source.startsWith("@uncross/")
 	);
 }
 

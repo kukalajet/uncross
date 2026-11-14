@@ -3,7 +3,7 @@ import { Effect, Layer, Logger } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import { OpenApi } from "effect/http-api";
 
-import { DatabaseHealth, UserRepository } from "@node-effect/application";
+import { DatabaseHealth, UserRepository } from "@uncross/application";
 
 import { accessLog } from "../access-log.ts";
 import { Api } from "../api-contract.ts";
@@ -199,7 +199,7 @@ describe("OpenAPI document", () => {
     const operationIds = new Set<string>();
 
     assert.strictEqual(specification.openapi, "3.1.0");
-    assert.strictEqual(specification.info.title, "node-effect-template API");
+    assert.strictEqual(specification.info.title, "uncross API");
 
     assert.deepStrictEqual(
       Object.keys(specification.paths).sort(),

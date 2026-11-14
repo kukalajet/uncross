@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Effect, Exit, Redacted } from "effect";
 
-import { runtimeRoleConfig } from "@node-effect/config";
+import { runtimeRoleConfig } from "@uncross/config";
 
 const parse = (env: Record<string, string>) =>
   Effect.exit(runtimeRoleConfig.parse(ConfigProvider.fromEnv({ env })));
@@ -10,12 +10,12 @@ describe("runtimeRoleConfig", () => {
   it.effect("reads the role name and keeps the password redacted", () =>
     Effect.gen(function* () {
       const exit = yield* parse({
-        APP_DATABASE_USER: "node_effect_app",
+        APP_DATABASE_USER: "uncross_app",
         APP_DATABASE_PASSWORD: "SECRET_SENTINEL",
       });
 
       assert(Exit.isSuccess(exit));
-      assert.strictEqual(exit.value.name, "node_effect_app");
+      assert.strictEqual(exit.value.name, "uncross_app");
 
       assert.strictEqual(
         Redacted.value(exit.value.password),

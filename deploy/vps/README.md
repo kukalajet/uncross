@@ -60,7 +60,7 @@ writes nothing.
 On the server the files are laid out as:
 
 ```text
-/opt/node-effect-template/   owned by deploy
+/opt/uncross/   owned by deploy
   compose.yml                deploy/vps/compose.yml from the current release's image
   bin/compose                Docker Compose with .env and release.env loaded
   bin/release                release script
@@ -74,13 +74,13 @@ On the server the files are laid out as:
   releases.log               one line per release attempt: time, commit, image digest, outcome
   release-output.log         everything the latest release attempt printed
   .previous/                 compose.yml, bin/ and release.env of the release before, for rollback
-/etc/node-effect-template/     owned by root, mode 0700
+/etc/uncross/     owned by root, mode 0700
   restic.env                 backup credentials and two heartbeat URLs, mode 0600
   monitor.env                the monitor's heartbeat URL and thresholds, mode 0600
-/etc/systemd/system/node-effect-template-*   the units from systemd/
-/var/backups/node-effect-template/database.dump   the latest dump, which restic uploads
-/var/cache/node-effect-template-restic/           restic's cache
-/var/lib/node-effect-template-monitor/restarts    each container's restart count at the last check
+/etc/systemd/system/uncross-*   the units from systemd/
+/var/backups/uncross/database.dump   the latest dump, which restic uploads
+/var/cache/uncross-restic/           restic's cache
+/var/lib/uncross-monitor/restarts    each container's restart count at the last check
 ```
 
 `bin/` holds exactly the scripts of the current release's image, like
@@ -89,10 +89,10 @@ On the server the files are laid out as:
 ### Database roles
 
 `api` and `worker` connect as the runtime role, `APP_DATABASE_USER`
-(`node_effect_app` by default). It can log in and read, insert, update and
-delete rows in the tables of the `public` schema, and use their sequences. It is
-not a superuser and belongs to no other role, so it cannot create, alter, drop
-or truncate those tables, create schemas or roles, read the migration journal in
+(`uncross_app` by default). It can log in and read, insert, update and delete
+rows in the tables of the `public` schema, and use their sequences. It is not a
+superuser and belongs to no other role, so it cannot create, alter, drop or
+truncate those tables, create schemas or roles, read the migration journal in
 the `drizzle` schema, read or write server files, or run programs on the server
 with `COPY ... TO PROGRAM`. SQL injection in the API is therefore limited to the
 application's rows rather than the schema or a shell next to the data volume.
@@ -209,9 +209,9 @@ loopback; keep it that way, because published ports bypass `ufw`.
 ### 5. Cloudflare Tunnel and DNS
 
 1. In Cloudflare Zero Trust, create a remotely managed tunnel, for example
-   `node-effect-template-production`, and copy the token from its install
-   command into the vault. Do not run the install command: the `cloudflared`
-   service is the connector.
+   `uncross-production`, and copy the token from its install command into the
+   vault. Do not run the install command: the `cloudflared` service is the
+   connector.
 2. Add a public hostname, for example `api.example.com`, with service type
    `HTTP` and URL `api:8000`. `cloudflared` resolves `api` on the Compose
    network.
@@ -241,11 +241,11 @@ raise the API's above it.
 ### 6. Files and secrets on the host
 
 ```bash
-ssh root@<server> 'install -d -m 750 -o deploy -g deploy /opt/node-effect-template /opt/node-effect-template/bin'
-scp deploy/vps/compose.yml root@<server>:/opt/node-effect-template/
-scp deploy/vps/bin/* root@<server>:/opt/node-effect-template/bin/
-scp deploy/vps/env.example root@<server>:/opt/node-effect-template/.env
-ssh root@<server> 'chown -R deploy:deploy /opt/node-effect-template && chmod 755 /opt/node-effect-template/bin/* && chmod 600 /opt/node-effect-template/.env'
+ssh root@<server> 'install -d -m 750 -o deploy -g deploy /opt/uncross /opt/uncross/bin'
+scp deploy/vps/compose.yml root@<server>:/opt/uncross/
+scp deploy/vps/bin/* root@<server>:/opt/uncross/bin/
+scp deploy/vps/env.example root@<server>:/opt/uncross/.env
+ssh root@<server> 'chown -R deploy:deploy /opt/uncross && chmod 755 /opt/uncross/bin/* && chmod 600 /opt/uncross/.env'
 ```
 
 These copies only bootstrap the first release. From then on, every release
@@ -253,8 +253,8 @@ installs `compose.yml` and `bin/` from the image it releases, after its
 migration has succeeded, so the server always runs the files that match its
 image.
 
-Fill in `/opt/node-effect-template/.env` following its comments, and keep every
-value in the vault:
+Fill in `/opt/uncross/.env` following its comments, and keep every value in the
+vault:
 
 - `APP_IMAGE_REPOSITORY`: `ghcr.io/<owner>/<repository>` in lowercase, as the
   Release workflow names the image.
@@ -307,7 +307,7 @@ command:
 
 ```bash
 install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
-echo 'restrict,command="/opt/node-effect-template/bin/release" ssh-ed25519 AAAA... github-actions-release' \
+echo 'restrict,command="/opt/uncross/bin/release" ssh-ed25519 AAAA... github-actions-release' \
   > /home/deploy/.ssh/authorized_keys
 chown deploy:deploy /home/deploy/.ssh/authorized_keys && chmod 600 /home/deploy/.ssh/authorized_keys
 ```
@@ -342,7 +342,7 @@ the prompt.
 
 ### 8. First start
 
-1. Start the database: `/opt/node-effect-template/bin/compose up -d postgresql`.
+1. Start the database: `/opt/uncross/bin/compose up -d postgresql`.
 2. Run the first release: with `PRODUCTION_HOST` set, push to `main`, or open
    **Actions → Release → Run workflow** on `main`.
 3. Verify through the tunnel:
@@ -452,11 +452,11 @@ waiting for it gives up after 8 seconds, or after
 `DATABASE_STATEMENT_TIMEOUT_MS` if that is shorter.
 
 **Rollback.** A release that fails its checks rolls itself back. To return to an
-earlier release by hand, run `/opt/node-effect-template/bin/release <sha>` on
-the server; it releases the digest `releases.log` recorded for that commit. For
-a commit this server never released, pass the digest from that commit's Release
-run: `bin/release <sha> sha256:<digest>`. Re-running only the `deploy` job of
-that commit's Release run does the same, because it reuses the `publish` job's
+earlier release by hand, run `/opt/uncross/bin/release <sha>` on the server; it
+releases the digest `releases.log` recorded for that commit. For a commit this
+server never released, pass the digest from that commit's Release run:
+`bin/release <sha> sha256:<digest>`. Re-running only the `deploy` job of that
+commit's Release run does the same, because it reuses the `publish` job's
 digest; re-running every job builds and publishes a new image instead. Either
 way the release's `compose.yml` and `bin/` come back with its image. Fix forward
 when the previous code cannot work with the newer schema.
@@ -475,44 +475,43 @@ when the previous code cannot work with the newer schema.
    the two checks' URLs:
 
    ```bash
-   ssh root@<server> 'install -d -m 700 /etc/node-effect-template'
-   scp deploy/vps/restic.env.example root@<server>:/etc/node-effect-template/restic.env
-   ssh root@<server> 'chmod 600 /etc/node-effect-template/restic.env'
+   ssh root@<server> 'install -d -m 700 /etc/uncross'
+   scp deploy/vps/restic.env.example root@<server>:/etc/uncross/restic.env
+   ssh root@<server> 'chmod 600 /etc/uncross/restic.env'
    ```
 
 4. Initialize the repository once:
-   `set -a; . /etc/node-effect-template/restic.env; set +a; restic init`.
+   `set -a; . /etc/uncross/restic.env; set +a; restic init`.
 5. Install and start the nightly backup and the weekly check:
 
    ```bash
-   scp deploy/vps/systemd/backup.service root@<server>:/etc/systemd/system/node-effect-template-backup.service
-   scp deploy/vps/systemd/backup.timer root@<server>:/etc/systemd/system/node-effect-template-backup.timer
-   scp deploy/vps/systemd/verify-backup.service root@<server>:/etc/systemd/system/node-effect-template-verify-backup.service
-   scp deploy/vps/systemd/verify-backup.timer root@<server>:/etc/systemd/system/node-effect-template-verify-backup.timer
-   ssh root@<server> 'systemctl daemon-reload && systemctl enable --now node-effect-template-backup.timer node-effect-template-verify-backup.timer'
+   scp deploy/vps/systemd/backup.service root@<server>:/etc/systemd/system/uncross-backup.service
+   scp deploy/vps/systemd/backup.timer root@<server>:/etc/systemd/system/uncross-backup.timer
+   scp deploy/vps/systemd/verify-backup.service root@<server>:/etc/systemd/system/uncross-verify-backup.service
+   scp deploy/vps/systemd/verify-backup.timer root@<server>:/etc/systemd/system/uncross-verify-backup.timer
+   ssh root@<server> 'systemctl daemon-reload && systemctl enable --now uncross-backup.timer uncross-verify-backup.timer'
    ```
 
 6. Run each once, in this order, read the result, and check that each check
    received its ping:
-   `systemctl start node-effect-template-backup.service && journalctl -u node-effect-template-backup -n 30`,
+   `systemctl start uncross-backup.service && journalctl -u uncross-backup -n 30`,
    then
-   `systemctl start node-effect-template-verify-backup.service && journalctl -u node-effect-template-verify-backup -n 40`.
+   `systemctl start uncross-verify-backup.service && journalctl -u uncross-verify-backup -n 40`.
 
 The scripts need restic 0.16 or later, which Ubuntu 24.04 and Debian 13 have.
 
 [`bin/backup`](bin/backup) writes a `pg_dump -Fc` of the database to
-`/var/backups/node-effect-template/database.dump`, uploads it with restic and
-applies the retention policy (7 daily, 4 weekly, 6 monthly). Then it pings
-`HEARTBEAT_URL`. When any step fails, it pings `<HEARTBEAT_URL>/fail` at once,
-with the last lines of the error, rather than leaving the check to notice a
-missing ping a day later. The service stops a backup that runs for more than 3
-hours, which then reports a failure too; raise `TimeoutStartSec` in
-`backup.service` if a backup legitimately takes longer. A restic process killed
-that way, or by a reboot, leaves its lock in the repository, which later restic
-commands would wait for, so the backup and the backup check start with
-`restic unlock`: it removes only locks whose process is gone. The service keeps
-restic's cache in `/var/cache/node-effect-template-restic`, so a run downloads
-only what changed.
+`/var/backups/uncross/database.dump`, uploads it with restic and applies the
+retention policy (7 daily, 4 weekly, 6 monthly). Then it pings `HEARTBEAT_URL`.
+When any step fails, it pings `<HEARTBEAT_URL>/fail` at once, with the last
+lines of the error, rather than leaving the check to notice a missing ping a day
+later. The service stops a backup that runs for more than 3 hours, which then
+reports a failure too; raise `TimeoutStartSec` in `backup.service` if a backup
+legitimately takes longer. A restic process killed that way, or by a reboot,
+leaves its lock in the repository, which later restic commands would wait for,
+so the backup and the backup check start with `restic unlock`: it removes only
+locks whose process is gone. The service keeps restic's cache in
+`/var/cache/uncross-restic`, so a run downloads only what changed.
 
 ### Weekly backup check
 
@@ -522,11 +521,11 @@ restored:
 
 1. The latest nightly snapshot is less than 26 hours old.
 2. It restores that snapshot's dump into a throwaway PostgreSQL container named
-   `node-effect-template-verify-backup`, from the image `compose.yml` runs, so
-   the check follows PostgreSQL updates. The dump streams from restic into
-   `pg_restore` and never touches the disk. The container has no network, at
-   most 512 MB of memory, one CPU and 128 processes, and is removed with its
-   volume however the run ends.
+   `uncross-verify-backup`, from the image `compose.yml` runs, so the check
+   follows PostgreSQL updates. The dump streams from restic into `pg_restore`
+   and never touches the disk. The container has no network, at most 512 MB of
+   memory, one CPU and 128 processes, and is removed with its volume however the
+   run ends.
 3. The restored migration journal has at least one migration and no more than
    the live database's. A release between the backup and the check can have
    added some; the journal shows both counts.
@@ -553,20 +552,20 @@ reading a quarter of the repository, and is stopped and reported as failed after
 then on the weekly check repeats the restore:
 
 ```bash
-set -a; . /etc/node-effect-template/restic.env; set +a
+set -a; . /etc/uncross/restic.env; set +a
 restic restore latest --target /tmp/restore
-postgres_image=$(/opt/node-effect-template/bin/compose config --images postgresql)
+postgres_image=$(/opt/uncross/bin/compose config --images postgresql)
 docker run -d --name restore-pg -e POSTGRES_PASSWORD=drill "$postgres_image"
 until docker exec restore-pg pg_isready -h 127.0.0.1 -U postgres; do sleep 1; done
-docker cp /tmp/restore/var/backups/node-effect-template/database.dump restore-pg:/tmp/database.dump
+docker cp /tmp/restore/var/backups/uncross/database.dump restore-pg:/tmp/database.dump
 docker exec restore-pg pg_restore -U postgres --no-owner --no-privileges --create -d postgres /tmp/database.dump
-docker exec restore-pg psql -U postgres -d node_effect -c 'select count(*) from users'
+docker exec restore-pg psql -U postgres -d uncross -c 'select count(*) from users'
 docker rm -f -v restore-pg && rm -rf /tmp/restore
 ```
 
 The dump holds the runtime role's grants, but not the role itself, which belongs
 to the whole PostgreSQL cluster rather than the database. Restoring them into a
-cluster without that role fails with `role "node_effect_app" does not exist`, so
+cluster without that role fails with `role "uncross_app" does not exist`, so
 every restore skips every grant with `--no-privileges`. The next `migrate`
 creates the role and grants it access again; re-apply any grant you added by
 hand.
@@ -678,44 +677,43 @@ and reports a problem when:
   container as `bin/release` asks.
 
 It compares restart counts with the last check's, kept by container ID in
-`/var/lib/node-effect-template-monitor/restarts`, so a container that a release
-or an operator recreated starts from zero, and one restart alerts once. Docker
-resets the counts when it starts, and at boot the worker restarts until
-PostgreSQL is ready, so the first check after Docker starts only records them.
-Until the first release only the host and Docker are checked. During a release
-it skips its check without reporting: `bin/release` checks the services itself,
-and the 15-minute grace outlasts a release.
+`/var/lib/uncross-monitor/restarts`, so a container that a release or an
+operator recreated starts from zero, and one restart alerts once. Docker resets
+the counts when it starts, and at boot the worker restarts until PostgreSQL is
+ready, so the first check after Docker starts only records them. Until the first
+release only the host and Docker are checked. During a release it skips its
+check without reporting: `bin/release` checks the services itself, and the
+15-minute grace outlasts a release.
 
 1. Create the monitor's check, with a period of 5 minutes and a grace of 15.
 2. Install its settings file and fill in the URL:
 
    ```bash
-   scp deploy/vps/monitor.env.example root@<server>:/etc/node-effect-template/monitor.env
-   ssh root@<server> 'chmod 600 /etc/node-effect-template/monitor.env'
+   scp deploy/vps/monitor.env.example root@<server>:/etc/uncross/monitor.env
+   ssh root@<server> 'chmod 600 /etc/uncross/monitor.env'
    ```
 
 3. Install and start the timer, which runs the first check at once:
 
    ```bash
-   scp deploy/vps/systemd/monitor.service root@<server>:/etc/systemd/system/node-effect-template-monitor.service
-   scp deploy/vps/systemd/monitor.timer root@<server>:/etc/systemd/system/node-effect-template-monitor.timer
-   ssh root@<server> 'systemctl daemon-reload && systemctl enable --now node-effect-template-monitor.timer'
+   scp deploy/vps/systemd/monitor.service root@<server>:/etc/systemd/system/uncross-monitor.service
+   scp deploy/vps/systemd/monitor.timer root@<server>:/etc/systemd/system/uncross-monitor.timer
+   ssh root@<server> 'systemctl daemon-reload && systemctl enable --now uncross-monitor.timer'
    ```
 
 When a check alerts, read the job's journal as root
-(`journalctl -u node-effect-template-<job> -n 50`) and act on its lines:
+(`journalctl -u uncross-<job> -n 50`) and act on its lines:
 
 - **Backup failed.** The body names the step: Compose or `pg_dump` (PostgreSQL
   down, disk full) or restic (credentials, bucket, network). Fix it and run
-  `systemctl start node-effect-template-backup.service`.
+  `systemctl start uncross-backup.service`.
 - **Backup check failed.**
   - `no nightly snapshot` or `hours old`: backups have stopped; see the backup's
     own alert.
   - `Not restoring`: free disk on Docker's data root, then run the check again
-    (`systemctl start node-effect-template-verify-backup.service`).
+    (`systemctl start uncross-verify-backup.service`).
   - `is already in use`: a run that was killed left its container behind. Remove
-    it with `docker rm -f -v node-effect-template-verify-backup` and run the
-    check again.
+    it with `docker rm -f -v uncross-verify-backup` and run the check again.
   - `pg_restore`, or the migration counts: the latest backup does not restore.
     Take a backup now and run the check again; if it still fails, find out why
     before the backup is needed.
@@ -738,8 +736,8 @@ When a check alerts, read the job's journal as root
   - A Docker error, or `Stopped by SIGTERM` when Docker hangs:
     `systemctl status docker` and `journalctl -u docker`.
 - **No ping in time.** The server is down or unreachable, the job's timer
-  stopped (`systemctl list-timers 'node-effect-template-*'`), or, for the
-  monitor, a release has run longer than 15 minutes.
+  stopped (`systemctl list-timers 'uncross-*'`), or, for the monitor, a release
+  has run longer than 15 minutes.
 
 The checks are alerts only, without metrics history. Worth adding:
 
@@ -767,7 +765,7 @@ switches alert, until a newer release brings them back.
 ```bash
 ssh root@<server>
 sudo -iu deploy
-cd /opt/node-effect-template
+cd /opt/uncross
 
 bin/compose ps
 bin/compose logs -f --since 10m api worker
@@ -776,9 +774,9 @@ bin/compose exec postgresql sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'
 tail releases.log
 ```
 
-As root, `systemctl list-timers 'node-effect-template-*'` shows when the backup,
-the backup check and the monitor last ran and run next, and
-`journalctl -u node-effect-template-monitor -n 50` shows what a job printed; see
+As root, `systemctl list-timers 'uncross-*'` shows when the backup, the backup
+check and the monitor last ran and run next, and
+`journalctl -u uncross-monitor -n 50` shows what a job printed; see
 [Monitoring](#monitoring) for what its alerts mean.
 
 `bin/compose exec postgresql` runs as the `postgres` user, not root, and the
@@ -863,7 +861,7 @@ Keep production private until every item passes.
       stops rising.
 - [ ] After `reboot`, every service and the tunnel return without manual action.
 - [ ] The API and the worker connect as the runtime role: in `psql`,
-      `select distinct usename from pg_stat_activity where application_name = 'node-effect-template'`
+      `select distinct usename from pg_stat_activity where application_name = 'uncross'`
       lists only `APP_DATABASE_USER`, and
       `select count(*) from pg_auth_members where member = '<APP_DATABASE_USER>'::regrole`
       returns 0.
@@ -878,10 +876,10 @@ Keep production private until every item passes.
 - [ ] Alerts fire:
   - Stop `api` and expect the uptime alert.
   - With PostgreSQL stopped (`bin/compose stop postgresql`), run
-    `systemctl start node-effect-template-backup.service`: the backup's check
-    reports the failure at once. Start PostgreSQL again and run the backup.
+    `systemctl start uncross-backup.service`: the backup's check reports the
+    failure at once. Start PostgreSQL again and run the backup.
   - `bin/compose stop worker`: the monitor's check alerts within about 6
     minutes. `bin/compose start worker`, and it recovers at the next check.
-  - `systemctl stop node-effect-template-monitor.timer`: the monitor's check
-    alerts after about 20 minutes, as it would for a server that is down. Start
-    the timer again.
+  - `systemctl stop uncross-monitor.timer`: the monitor's check alerts after
+    about 20 minutes, as it would for a server that is down. Start the timer
+    again.

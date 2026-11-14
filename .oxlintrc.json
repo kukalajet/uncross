@@ -104,7 +104,7 @@
           {
             "object": "process",
             "property": "env",
-            "message": "Read configuration through AppConfig (@node-effect/config), which validates it."
+            "message": "Read configuration through AppConfig (@uncross/config), which validates it."
           },
           {
             "object": "Effect",
@@ -169,32 +169,32 @@
           {
             "object": "Logger",
             "property": "consoleJson",
-            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+            "message": "Provide LoggingLive from @uncross/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
           },
           {
             "object": "Logger",
             "property": "consoleLogFmt",
-            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+            "message": "Provide LoggingLive from @uncross/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
           },
           {
             "object": "Logger",
             "property": "consolePretty",
-            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+            "message": "Provide LoggingLive from @uncross/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
           },
           {
             "object": "Logger",
             "property": "consolePrettyBrowser",
-            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+            "message": "Provide LoggingLive from @uncross/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
           },
           {
             "object": "Logger",
             "property": "consolePrettyTty",
-            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+            "message": "Provide LoggingLive from @uncross/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
           },
           {
             "object": "Logger",
             "property": "consoleStructured",
-            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+            "message": "Provide LoggingLive from @uncross/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
           }
         ]
       }
@@ -211,7 +211,7 @@
                 "message": "Node runs the .ts files directly and does not map .js to .ts; end relative imports in .ts."
               },
               {
-                "regex": "^(@node-effect/database|effect/sql)(/.*)?$",
+                "regex": "^(@uncross/database|effect/sql)(/.*)?$",
                 "message": "Feature code uses application ports. Provide their adapters in the app's composition root (request-services-live.ts, worker-runtime.ts)."
               }
             ]

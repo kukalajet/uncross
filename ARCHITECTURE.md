@@ -6,6 +6,60 @@ visible: application code declares what it needs, adapters implement those
 contracts, and each executable chooses the concrete implementations in its
 composition root.
 
+## The exchange (Uncross)
+
+The rest of this document describes the web application this workspace started
+from: the API, the worker and the users example. The exchange follows the same
+rules (contracts in `application`, adapters implement them, composition roots
+choose), with the boundaries below. `docs/DESIGN.md` gives the reasons.
+
+Status: planned. None of these packages exists yet; correct this section as the
+code lands.
+
+```text
+exchange stages (apps/exchange) --> application --> core
+simulator (apps/sim) -------------> application --> core
+
+engine adapter ------> application + core
+journal adapter -----> application + protocol
+protocol ------------> core
+```
+
+| Code being added                                                             | Location                                                                 |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Order book, matching function, command and event types, fixed-point values   | `packages/core/`                                                         |
+| Binary encoding and decoding of commands and events                          | `packages/protocol/`                                                     |
+| Ports: `MatchingEngine`, `Sequencer`, `Journal`, `MarketDataPublisher`       | `packages/application/src/exchange/`                                     |
+| `MatchingEngineLive`, which wraps `core`                                     | `packages/engine/`                                                       |
+| Sequencing and the append-only journal, with replay                          | `packages/journal/`                                                      |
+| Gateway, the pipeline that connects the stages, publishers, composition root | `apps/exchange/src/`                                                     |
+| Simulated traders, scenarios, load generation                                | `apps/sim/src/`                                                          |
+| A Rust implementation of a stage                                             | a new adapter package for the same port, such as `packages/engine-rust/` |
+
+Rules that the web application does not have:
+
+- `core` is stricter than `domain`. `domain` may use Effect's `Schema`; `core`
+  imports nothing, not even `effect`, and has no I/O, clock, randomness or
+  async. It is the code a Rust engine replaces, and it must give the same events
+  for the same commands, byte for byte. Lint should reject any import in
+  `packages/core/` that is not relative.
+- Stages exchange `protocol` bytes, never TypeScript objects. A port between
+  stages takes and returns encoded commands and events, so an adapter in another
+  language or process fits it unchanged.
+- A command reaches the engine only after the sequencer has numbered it and the
+  journal has stored it.
+- PostgreSQL is not on the order path. The journal is the source of truth for
+  exchange state, which is rebuilt by replaying it and is not stored in tables.
+  The database keeps what changes slowly: accounts, instruments and other
+  reference data, and reports built from events.
+- A stage's composition root chooses its adapters, as the API's and worker's do.
+  Replacing the TypeScript engine with a Rust one changes one layer in
+  `apps/exchange/src/`.
+
+The reference test for the engine is replay: a recorded journal goes in, and the
+events must equal the recorded events. Every engine adapter runs the same replay
+files.
+
 ## Dependency direction
 
 Arrows mean "may import":
@@ -51,12 +105,12 @@ scripts) still resolve from every package during development, but the production
 image installs only each package's declared dependencies. Declare every runtime
 import in the manifest of the package that imports it.
 
-Lint enforces the part pnpm cannot. Both apps depend on `@node-effect/database`
-for their composition roots, so pnpm lets routes and jobs import it too. Lint
-rejects imports of `@node-effect/database` and `effect/sql` in every folder
-under `apps/*/src/`, tests included; only the files directly in `src/` may
-import them. A composition root placed inside a feature folder needs its own
-override in `.oxlintrc.json`.
+Lint enforces the part pnpm cannot. Both apps depend on `@uncross/database` for
+their composition roots, so pnpm lets routes and jobs import it too. Lint
+rejects imports of `@uncross/database` and `effect/sql` in every folder under
+`apps/*/src/`, tests included; only the files directly in `src/` may import
+them. A composition root placed inside a feature folder needs its own override
+in `.oxlintrc.json`.
 
 ## Layout
 
@@ -532,7 +586,7 @@ Each package exposes its supported surface through `index.ts`, which its
 surface:
 
 ```ts
-import { UserRepository } from "@node-effect/application";
+import { UserRepository } from "@uncross/application";
 ```
 
 Do not deep-import another package's `src/` files. Relative imports are for

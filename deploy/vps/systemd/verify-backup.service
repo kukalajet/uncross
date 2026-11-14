@@ -1,20 +1,20 @@
 [Unit]
-Description=Check the node-effect-template backups by restoring the latest one
+Description=Check the uncross backups by restoring the latest one
 Requires=docker.service
 # A run that catches up after downtime waits for a backup that starts with it.
-After=docker.service node-effect-template-backup.service
+After=docker.service uncross-backup.service
 
 [Service]
 Type=oneshot
-EnvironmentFile=/etc/node-effect-template/restic.env
+EnvironmentFile=/etc/uncross/restic.env
 # The backup's restic cache, which holds the repository's index.
-CacheDirectory=node-effect-template-restic
+CacheDirectory=uncross-restic
 CacheDirectoryMode=0700
-Environment=RESTIC_CACHE_DIR=/var/cache/node-effect-template-restic
+Environment=RESTIC_CACHE_DIR=/var/cache/uncross-restic
 # Whatever a stopped or killed run leaves in /tmp goes with this private /tmp
 # when the run ends.
 PrivateTmp=true
 # Past this, systemd stops the run and bin/verify-backup reports the failure.
 # Raise it if the check legitimately takes longer.
 TimeoutStartSec=3h
-ExecStart=/opt/node-effect-template/bin/verify-backup
+ExecStart=/opt/uncross/bin/verify-backup

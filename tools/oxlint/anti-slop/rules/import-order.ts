@@ -12,7 +12,7 @@ type ImportEntry = {
 
 function importCategory(source: string): ImportCategory {
   if (source.startsWith("node:")) return 0;
-  if (source.startsWith("@node-effect/")) return 2;
+  if (source.startsWith("@uncross/")) return 2;
   if (source === ".." || source.startsWith("../")) return 3;
   if (source === "." || source.startsWith("./")) return 4;
   return 1;

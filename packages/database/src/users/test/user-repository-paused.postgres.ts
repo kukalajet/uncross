@@ -7,7 +7,7 @@ import {
   DatabaseHealthError,
   UserRepository,
   UserPersistenceFailure,
-} from "@node-effect/application";
+} from "@uncross/application";
 
 import { DatabaseHealthLive } from "../../database-health-live.ts";
 import {

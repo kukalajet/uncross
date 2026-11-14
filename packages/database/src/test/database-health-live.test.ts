@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Fiber, Layer } from "effect";
 import { TestClock } from "effect/testing";
 
-import { DatabaseHealth, DatabaseHealthError } from "@node-effect/application";
+import { DatabaseHealth, DatabaseHealthError } from "@uncross/application";
 
 import { DatabaseHealthLive } from "../database-health-live.ts";
 import { DatabaseLive } from "../postgres.ts";

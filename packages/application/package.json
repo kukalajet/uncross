@@ -1,5 +1,5 @@
 {
-  "name": "@node-effect/application",
+  "name": "@uncross/application",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     ".": "./index.ts"
   },
   "dependencies": {
-    "@node-effect/domain": "workspace:*",
+    "@uncross/domain": "workspace:*",
     "effect": "catalog:"
   }
 }

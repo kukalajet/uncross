@@ -6,7 +6,7 @@ import { EffectDrizzleQueryError } from "drizzle-orm/effect-core";
 import { Cause, ConfigProvider, Effect, Exit, Logger } from "effect";
 import { SqlError } from "effect/sql";
 
-import { runtimeRoleConfig } from "@node-effect/config";
+import { runtimeRoleConfig } from "@uncross/config";
 
 import { reportMigrationFailure } from "../migrate.ts";
 

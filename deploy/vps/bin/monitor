@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks the host and the production services, every 5 minutes, as root from
-# the monitor service. Reads /etc/node-effect-template/monitor.env and reports
+# the monitor service. Reads /etc/uncross/monitor.env and reports
 # to MONITOR_HEARTBEAT_URL through bin/heartbeat.sh: the URL when every check
 # passes, <URL>/fail with one line per problem otherwise. A problem is:
 #
@@ -42,7 +42,7 @@ if [[ ! $disk_percent =~ ^[0-9]+$ || ! $memory_percent =~ ^[0-9]+$ ]]; then
   echo "MONITOR_DISK_PERCENT and MONITOR_MEMORY_PERCENT must be whole numbers" >&2
   exit 1
 fi
-state_file=${STATE_DIRECTORY:-/var/lib/node-effect-template-monitor}/restarts
+state_file=${STATE_DIRECTORY:-/var/lib/uncross-monitor}/restarts
 
 problems=0
 problem() {

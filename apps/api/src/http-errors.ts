@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import {
   type PersistenceFailure,
   persistenceFailureReport,
-} from "@node-effect/application";
+} from "@uncross/application";
 
 import {
   DatabaseErrorResponse,

@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { Effect, Layer } from "effect";
 
-import { DatabaseHealth, DatabaseHealthError } from "@node-effect/application";
+import { DatabaseHealth, DatabaseHealthError } from "@uncross/application";
 
 import { databaseCalls } from "./database-call.ts";
 import { Database } from "./postgres.ts";

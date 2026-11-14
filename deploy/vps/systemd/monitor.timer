@@ -1,5 +1,5 @@
 [Unit]
-Description=Check node-effect-template every 5 minutes
+Description=Check uncross every 5 minutes
 
 [Timer]
 OnBootSec=5min
