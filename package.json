@@ -1,0 +1,58 @@
+{
+  "name": "node-effect-template",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "vp config --no-agent && effect-tsgo patch --typescript --no-oxlint",
+    "init": "node scripts/init-template.ts",
+    "dev:api": "node --watch --env-file=.env apps/api/src/main.ts",
+    "start:api": "node --env-file=.env apps/api/src/main.ts",
+    "dev:worker": "node --watch --env-file=.env apps/worker/src/main.ts",
+    "start:worker": "node --env-file=.env apps/worker/src/main.ts",
+    "sample:worker": "node --env-file=.env apps/worker/src/once.ts",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate": "node --env-file=.env packages/database/src/migrate.ts",
+    "db:check": "drizzle-kit check --config=drizzle.config.ts",
+    "db:verify": "node scripts/check-migrations.ts",
+    "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
+    "openapi": "node scripts/export-openapi.ts",
+    "fmt": "vp fmt",
+    "lint": "vp lint",
+    "fix": "vp check --fix",
+    "typecheck": "node scripts/typecheck.ts",
+    "test": "vp test run --project unit",
+    "test:postgres": "vp test run --project postgres",
+    "smoke:docker": "bash scripts/smoke-docker.sh",
+    "check": "vp check && node scripts/typecheck.ts && node scripts/check-migrations.ts && vp test run --project unit",
+    "check:static": "bash scripts/check-static.sh",
+    "scan:image": "bash scripts/scan-image.sh"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "0.56.1",
+    "@effect/vitest": "catalog:",
+    "@oxlint/plugins": "1.89.0",
+    "@types/node": "26.6.5",
+    "drizzle-kit": "catalog:",
+    "effect": "catalog:",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
+    "pg": "8.23.1",
+    "typescript": "7.1.0-beta",
+    "vite-plus": "1.4.0",
+    "vitest": "5.0.5"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.15.0",
+      "onFail": "download"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "26.12.1",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.15.0"
+}

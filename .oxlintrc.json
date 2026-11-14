@@ -1,0 +1,238 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "options": {
+    "reportUnusedDisableDirectives": "error"
+  },
+  "ignorePatterns": [
+    "drizzle/**",
+    "tools/oxlint/anti-slop/**",
+    "deploy/**",
+    ".claude/**"
+  ],
+  "jsPlugins": [
+    {
+      "name": "anti-slop",
+      "specifier": "./tools/oxlint/anti-slop/index.ts"
+    },
+    {
+      "name": "anti-slop-effect",
+      "specifier": "./tools/oxlint/anti-slop/effect/index.ts"
+    }
+  ],
+  "rules": {
+    "eslint/no-array-constructor": "error",
+    "eslint/no-case-declarations": "error",
+    "eslint/no-empty": "error",
+    "eslint/no-fallthrough": "error",
+    "eslint/no-inner-declarations": ["error", "both"],
+    "eslint/no-prototype-builtins": "error",
+    "eslint/no-regex-spaces": "error",
+    "eslint/no-unused-vars": [
+      "error",
+      {
+        "varsIgnorePattern": "^_",
+        "argsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ],
+    "eslint/no-var": "error",
+    "eslint/prefer-const": ["error", { "destructuring": "all" }],
+    "eslint/require-await": "error",
+    "eslint/no-shadow": "error",
+    "typescript/adjacent-overload-signatures": "error",
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "ts-ignore": "allow-with-description",
+        "ts-expect-error": "allow-with-description",
+        "ts-nocheck": "allow-with-description"
+      }
+    ],
+    "typescript/ban-types": "error",
+    "typescript/consistent-type-assertions": [
+      "error",
+      { "assertionStyle": "as", "objectLiteralTypeAssertions": "never" }
+    ],
+    "typescript/no-empty-interface": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-non-null-assertion": "error",
+    "unicorn/no-abusive-eslint-disable": "error",
+    "import/extensions": ["error", "always", { "ignorePackages": true }],
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "regex": "^\\.{1,2}/.*\\.[cm]?jsx?$",
+            "message": "Node runs the .ts files directly and does not map .js to .ts; end relative imports in .ts."
+          }
+        ]
+      }
+    ],
+
+    "anti-slop/blank-line-around-blocks": "error",
+    "anti-slop/blank-line-around-multiline-statements": "error",
+    "anti-slop/blank-line-before-return": "error",
+    "anti-slop/import-order": "error",
+    "anti-slop/max-loop-skips": "error",
+    "anti-slop/no-chained-type-assertions": "error",
+    "anti-slop/no-inline-exports": "error",
+    "anti-slop/no-inline-regex-match": "error",
+    "anti-slop/no-known-value-widening": "warn",
+    "anti-slop/no-module-mocking": "error",
+    "anti-slop/no-unsafe-dictionary-type": "error",
+    "anti-slop/no-widen-then-assert": "error",
+    "anti-slop/require-safety-comment-for-type-assertion": "error",
+    "anti-slop-effect/no-service-constructor-imports": "error",
+    "eslint/no-nested-ternary": "error",
+    "import/exports-last": "error"
+  },
+  "overrides": [
+    {
+      "files": ["apps/**", "packages/**"],
+      "rules": {
+        "eslint/no-console": "error",
+        "eslint/no-restricted-properties": [
+          "error",
+          {
+            "object": "process",
+            "property": "env",
+            "message": "Read configuration through AppConfig (@node-effect/config), which validates it."
+          },
+          {
+            "object": "Effect",
+            "property": "runCallback",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runCallbackWith",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runFork",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runForkWith",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runPromise",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runPromiseExit",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runPromiseExitWith",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runPromiseWith",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runSync",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runSyncExit",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runSyncExitWith",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Effect",
+            "property": "runSyncWith",
+            "message": "Run effects in an entrypoint, with NodeRuntime.runMain. Elsewhere, compose them with yield* and layers."
+          },
+          {
+            "object": "Logger",
+            "property": "consoleJson",
+            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+          },
+          {
+            "object": "Logger",
+            "property": "consoleLogFmt",
+            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+          },
+          {
+            "object": "Logger",
+            "property": "consolePretty",
+            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+          },
+          {
+            "object": "Logger",
+            "property": "consolePrettyBrowser",
+            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+          },
+          {
+            "object": "Logger",
+            "property": "consolePrettyTty",
+            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+          },
+          {
+            "object": "Logger",
+            "property": "consoleStructured",
+            "message": "Provide LoggingLive from @node-effect/config, which logs JSON lines with trace ids at LOG_LEVEL. Tests capture logs with their own Logger.layer."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["apps/*/src/*/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^\\.{1,2}/.*\\.[cm]?jsx?$",
+                "message": "Node runs the .ts files directly and does not map .js to .ts; end relative imports in .ts."
+              },
+              {
+                "regex": "^(@node-effect/database|effect/sql)(/.*)?$",
+                "message": "Feature code uses application ports. Provide their adapters in the app's composition root (request-services-live.ts, worker-runtime.ts)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "**/test/**",
+        "**/*.test.ts",
+        "**/*.postgres.ts",
+        "**/*.fixtures.ts",
+        "**/postgres.setup.ts"
+      ],
+      "rules": {
+        "anti-slop/no-inline-regex-match": "off",
+        "eslint/no-console": "off",
+        "eslint/no-restricted-properties": "off",
+        "typescript/no-non-null-assertion": "off"
+      }
+    }
+  ]
+}

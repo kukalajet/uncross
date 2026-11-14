@@ -1,0 +1,16 @@
+[Unit]
+Description=Check the node-effect-template services and host
+# Without Requires=docker.service, the check also runs when Docker is down, and
+# reports it.
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/node-effect-template/monitor.env
+# Holds the containers' restart counts from the last check.
+StateDirectory=node-effect-template-monitor
+StateDirectoryMode=0700
+# A check takes seconds. A hung Docker would hold back every later one; past
+# this, systemd stops the run and bin/monitor reports the failure.
+TimeoutStartSec=2min
+ExecStart=/opt/node-effect-template/bin/monitor

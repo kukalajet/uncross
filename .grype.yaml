@@ -1,0 +1,19 @@
+# Grype configuration for the image scan in ci.yml's smoke job and in scan.yml,
+# which fail on High and Critical vulnerabilities that have a fix.
+#
+# Fix a finding before accepting it: update the dependency, or re-pin the base
+# image to its tag's current digest. Accept one only when it cannot affect this
+# image, with a rule that names the vulnerability id the scan reports and the
+# package version, so an upgrade brings the finding back for review. Grype
+# rules do not expire, so the reason records who accepted it, when, why and the
+# date to look again. For example:
+#
+#   ignore:
+#     - vulnerability: GHSA-xxxx-xxxx-xxxx
+#       package:
+#         name: example-package
+#         version: 1.2.3
+#       reason: >-
+#         Accepted 2026-10-27 by Jane Doe: the image never calls the vulnerable
+#         parser. Review by 2027-01-31.
+ignore: []

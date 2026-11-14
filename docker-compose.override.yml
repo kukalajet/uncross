@@ -1,0 +1,7 @@
+# Publishes PostgreSQL on loopback for native commands (`pnpm dev:api`,
+# `pnpm db:migrate`, `pnpm test:postgres`) and database tools. Compose loads this
+# file automatically; scripts/smoke-docker.sh leaves it out.
+services:
+  postgresql:
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"

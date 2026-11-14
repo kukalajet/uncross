@@ -1,0 +1,3 @@
+# shellcheck shell=sh # Vite+ runs hooks with `sh -e`
+pnpm run typecheck
+pnpm run test

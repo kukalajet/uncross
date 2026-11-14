@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Backs up PostgreSQL to the restic repository configured in
+# /etc/node-effect-template/restic.env. Runs as root from the backup service,
+# and reports to HEARTBEAT_URL through bin/heartbeat.sh: the URL when the backup
+# succeeds, <URL>/fail with its last error lines as soon as it fails.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=deploy/vps/bin/heartbeat.sh
+source bin/heartbeat.sh
+heartbeat_init "${HEARTBEAT_URL:-}"
+
+out=/var/backups/node-effect-template
+install -d -m 700 "$out"
+# A dump cut short takes disk until the next night's run replaces it.
+cleanup() {
+  rm -f "$out/database.dump.partial"
+}
+
+# shellcheck disable=SC2016 # expanded inside the container
+bin/compose exec -T postgresql sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' \
+  > "$out/database.dump.partial"
+mv -f "$out/database.dump.partial" "$out/database.dump"
+
+# A restic process that was killed, by a stopped or timed-out run or a reboot,
+# leaves its lock in the repository, and restic waits for that lock as for a
+# live one. unlock removes only locks whose process is gone.
+restic unlock
+# bin/verify-backup's `restic check` locks the repository for its whole run;
+# wait for it rather than fail.
+restic --retry-lock 1h backup --tag nightly "$out"
+restic --retry-lock 1h forget --tag nightly --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune

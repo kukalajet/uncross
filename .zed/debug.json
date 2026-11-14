@@ -1,0 +1,36 @@
+[
+  {
+    "label": "Debug API",
+    "adapter": "JavaScript",
+    "request": "launch",
+    "type": "pwa-node",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "program": "$ZED_WORKTREE_ROOT/apps/api/src/main.ts",
+    "runtimeExecutable": "$ZED_WORKTREE_ROOT/node_modules/.bin/node",
+    "runtimeArgs": ["--inspect-wait=127.0.0.1:9229", "--env-file=.env"],
+    "attachSimplePort": 9229
+  },
+  {
+    "label": "Debug Worker",
+    "adapter": "JavaScript",
+    "request": "launch",
+    "type": "pwa-node",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "program": "$ZED_WORKTREE_ROOT/apps/worker/src/main.ts",
+    "runtimeExecutable": "$ZED_WORKTREE_ROOT/node_modules/.bin/node",
+    "runtimeArgs": ["--inspect-wait=127.0.0.1:9230", "--env-file=.env"],
+    "attachSimplePort": 9230
+  },
+  {
+    "label": "Debug Vitest (current file)",
+    "adapter": "JavaScript",
+    "request": "launch",
+    "type": "pwa-node",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "program": "$ZED_WORKTREE_ROOT/node_modules/vitest/vitest.mjs",
+    "runtimeExecutable": "$ZED_WORKTREE_ROOT/node_modules/.bin/node",
+    "args": ["run", "--no-file-parallelism", "$ZED_FILE"],
+    "autoAttachChildProcesses": true,
+    "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "arrowParens": "always",
+  "proseWrap": "always",
+  "ignorePatterns": [
+    "drizzle/**",
+    "tools/oxlint/anti-slop/**",
+    "pnpm-lock.yaml",
+    ".claude/**"
+  ],
+  "overrides": [
+    {
+      "files": ["pnpm-workspace.yaml"],
+      "options": { "singleQuote": true }
+    }
+  ]
+}

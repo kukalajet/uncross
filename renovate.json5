@@ -1,0 +1,217 @@
+// Renovate opens pull requests for every pinned version: npm packages, the
+// pnpm catalog and overrides, Node and pnpm, Docker images by tag and digest,
+// GitHub Actions by commit SHA, and the tools pinned in scripts and workflows.
+// README.md ("Dependency updates") lists the groups, what the three-day wait
+// does not cover, and what is not managed.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  // config:recommended plus digest pins for images and actions, weekly lock
+  // file maintenance, config migration and the Dependency Dashboard.
+  extends: ["config:best-practices"],
+  // Three days for every datasource, not only npm: time for a broken or
+  // hijacked release to be reported and pulled.
+  //
+  // Renovate holds an update whose release date it cannot read. When every
+  // update in its pull request is held, the Dependency Dashboard lists it
+  // under "Pending Status Checks", to tick once someone has checked the date;
+  // otherwise Renovate leaves it out of the pull request. So each undated
+  // image below has a group of its own, or follows a dated pin of the same
+  // version. GHCR dates nothing (zizmor), and Docker Hub cannot be paged
+  // anonymously through a long tag list (node, postgres, cloudflared,
+  // anchore/grype; renovatebot/renovate#46925).
+  minimumReleaseAge: "3 days",
+  // A person reviews and merges every update.
+  automerge: false,
+  // The image docker-compose.yml builds from this repository.
+  ignoreDeps: ["node-effect-template"],
+  customManagers: [
+    {
+      customType: "regex",
+      description: "pnpm, which the Dockerfile installs with npm",
+      managerFilePatterns: ["/^Dockerfile$/"],
+      matchStrings: ["npm install --global pnpm@(?<currentValue>\\S+)"],
+      depNameTemplate: "pnpm",
+      datasourceTemplate: "npm",
+    },
+    {
+      customType: "regex",
+      description: "Docker images pinned on the line after a `# renovate:` comment in shell scripts",
+      managerFilePatterns: ["/^scripts/[^/]+\\.sh$/"],
+      matchStrings: [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\w+=[^\\s:]+:(?<currentValue>[^\\s@]+)@(?<currentDigest>sha256:[0-9a-f]{64})",
+      ],
+    },
+    {
+      customType: "regex",
+      description: "Versions on the line after a `# renovate:` comment in workflows",
+      managerFilePatterns: ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      matchStrings: [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s*[\\w-]+:\\s*(?<currentValue>\\S+)",
+      ],
+    },
+  ],
+  // One pull request per group. Where versions must agree across files,
+  // scripts/toolchain.test.ts fails a pull request that updates only some.
+  packageRules: [
+    {
+      // Renovate cannot date these update types, so with the three days above
+      // their pull requests would keep a pending stability status for good.
+      // This is the list Renovate's own security:minimumReleaseAge presets
+      // exempt. pnpm resolves the weekly lock file update with its own
+      // one-day minimum release age.
+      matchUpdateTypes: [
+        "lockFileMaintenance",
+        "replacement",
+        "pin",
+        "bump",
+        "lockfileUpdate",
+        "rollback",
+      ],
+      minimumReleaseAge: null,
+    },
+    {
+      groupName: "Effect",
+      matchPackageNames: ["effect", "@effect/*"],
+    },
+    {
+      // Drizzle also publishes branch builds such as 1.0.0-rc.5-ab785fc, which
+      // sort above the release they start from.
+      groupName: "Drizzle",
+      matchPackageNames: ["drizzle-orm", "drizzle-kit"],
+      allowedVersions: "!/-[0-9a-f]{7}$/",
+    },
+    {
+      // vite-plus pins exact versions of these, which the root devDependencies
+      // and the overrides in pnpm-workspace.yaml repeat. When oxc or Vitest
+      // release first, this pull request fails the toolchain test until it
+      // also carries the vite-plus release that pins them. A major of
+      // vite-plus or Vitest stays in the same pull request: split by update
+      // type, neither half would match what vite-plus pins.
+      groupName: "Vite+ toolchain",
+      groupSlug: "vite-plus-toolchain",
+      matchPackageNames: [
+        "vite-plus",
+        "@voidzero-dev/vite-plus-core",
+        "vitest",
+        "oxlint",
+        "oxfmt",
+        "@oxlint/plugins",
+      ],
+      separateMajorMinor: false,
+    },
+    {
+      // Each @effect/tsgo release ships a tsc built from specific TypeScript
+      // releases, and the type check runs the one built from the installed
+      // `typescript`. A TypeScript update therefore fails the type check
+      // (scripts/typecheck.ts) until this pull request also carries an
+      // @effect/tsgo release that ships it; a major of either stays in the
+      // same pull request for that reason. From a prerelease, Renovate offers
+      // newer prereleases of the same version; the nightly 7.1.0-dev builds
+      // are not wanted.
+      groupName: "TypeScript",
+      matchPackageNames: ["typescript", "@effect/tsgo"],
+      allowedVersions: "!/-dev\\./",
+      separateMajorMinor: false,
+    },
+    {
+      // devEngines.runtime and the Dockerfile's base image. The workflows read
+      // the version from package.json.
+      groupName: "Node",
+      matchDepNames: ["node"],
+    },
+    {
+      // The node image has no date, and next to devEngines.runtime's dated
+      // update it would be left out of the pull request. Its version updates
+      // follow devEngines.runtime, whose date comes from nodejs.org, and the
+      // pull request opens once it holds all three updates: devEngines.runtime
+      // and the Dockerfile's two node stages. Until then the dashboard lists it
+      // under "Group Size Not Met". A new digest of the same tag still waits
+      // for a tick.
+      matchDatasources: ["docker"],
+      matchDepNames: ["node"],
+      matchUpdateTypes: ["major", "minor", "patch"],
+      minimumReleaseAge: null,
+      minimumGroupSize: 3,
+    },
+    {
+      // packageManager, devEngines.packageManager and the Dockerfile.
+      groupName: "pnpm",
+      matchPackageNames: ["pnpm"],
+    },
+    {
+      // Actions only: the PostgreSQL service in ci.yml joins its own group.
+      groupName: "GitHub Actions",
+      matchManagers: ["github-actions"],
+      matchDepTypes: ["action"],
+      prBodyNotes: [
+        "Before merging, check that each new action version has a GitHub Release and when it was published: an action's release date comes from its tag or commit, which whoever pushes the tag sets.",
+      ],
+    },
+    {
+      // A digest update keeps an action's version and moves it to another
+      // commit: the tag was moved, as in a hijacked release. Renovate dates it
+      // by the version's original release, so the three days would not hold
+      // it, and its pull request would keep a pending stability status. It
+      // waits for approval on the dashboard instead, in a pull request of its
+      // own, since one update that needs approval holds its whole group.
+      matchManagers: ["github-actions"],
+      matchDepTypes: ["action"],
+      matchUpdateTypes: ["digest"],
+      groupName: null,
+      dependencyDashboardApproval: true,
+      minimumReleaseAge: null,
+      prBodyNotes: [
+        "This keeps the action's version and moves it to another commit, so its tag was moved. Check on GitHub that its maintainers moved it on purpose before merging.",
+      ],
+    },
+    {
+      // ci.yml, docker-compose.yml and deploy/vps/compose.yml.
+      groupName: "PostgreSQL",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["postgres"],
+    },
+    {
+      // A new major needs a dump and restore of the production database, so
+      // it is a planned migration rather than a pull request.
+      matchDatasources: ["docker"],
+      matchPackageNames: ["postgres"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
+    },
+    {
+      groupName: "cloudflared",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["cloudflare/cloudflared"],
+    },
+    {
+      // scripts/check-static.sh, which CI's static job runs. Both images have
+      // release dates.
+      groupName: "Static check tools",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["koalaman/shellcheck", "rhysd/actionlint"],
+    },
+    {
+      // Also in scripts/check-static.sh. GHCR gives it no date, so it has a
+      // group of its own, where it waits for a tick.
+      groupName: "zizmor",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/zizmorcore/zizmor"],
+    },
+    {
+      // grype-version in ci.yml and scan.yml, and the image in
+      // scripts/scan-image.sh.
+      groupName: "Grype",
+      matchPackageNames: ["anchore/grype"],
+    },
+    {
+      // Like the node image: the Grype image's version updates follow the
+      // GitHub release's date, and the pull request opens once it holds all
+      // three updates.
+      matchDatasources: ["docker"],
+      matchPackageNames: ["anchore/grype"],
+      matchUpdateTypes: ["major", "minor", "patch"],
+      minimumReleaseAge: null,
+      minimumGroupSize: 3,
+    },
+  ],
+}

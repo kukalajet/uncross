@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# Checks the backups, weekly, as root from the verify-backup service:
+#
+# 1. The latest nightly snapshot is less than 26 hours old.
+# 2. It restores into a throwaway PostgreSQL container, without a network, from
+#    the image compose.yml runs, and every table in it can be read.
+# 3. Its migration journal has at least one migration and no more than the live
+#    database's, which a release after the backup can have added to.
+# 4. restic checks the repository's structure and reads a quarter of its data,
+#    a different quarter each week.
+#
+# Reads the repository settings and VERIFY_HEARTBEAT_URL from
+# /etc/node-effect-template/restic.env, and reports like bin/backup.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=deploy/vps/bin/heartbeat.sh
+source bin/heartbeat.sh
+heartbeat_init "${VERIFY_HEARTBEAT_URL:-}"
+
+# The path bin/backup writes the dump to, which restic recorded.
+dump=/var/backups/node-effect-template/database.dump
+# The backup's own heartbeat alerts after the same time without a backup.
+max_snapshot_age_hours=26
+mebibyte=$((1024 * 1024))
+# The restored database takes about as much disk as the live one, plus its WAL,
+# which max_wal_size below bounds. The dump streams from restic into
+# pg_restore and is never written to disk; it is compressed and many times
+# smaller than the database, so it is no measure of the space needed.
+restore_headroom_bytes=$((1024 * mebibyte))
+container=node-effect-template-verify-backup
+# The restore container's PostgreSQL starts within seconds; this is a ceiling.
+ready_timeout_seconds=120
+# A quarter of the data each week reads every pack about once a month. restic
+# splits the packs into groups by ID, so the four groups cover all of them,
+# where a random percentage would not. The restore reads the latest backup's
+# own data in full every week.
+check_groups=4
+seconds_per_week=$((7 * 24 * 60 * 60))
+
+# Prints the result of a query to the live database.
+# shellcheck disable=SC2016 # expanded inside the container
+live_psql() {
+  bin/compose exec -T postgresql \
+    sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -AtXc "$1"' sh "$1"
+}
+
+# Prints the result of a query to database $1 in the restore container.
+restored_psql() {
+  docker exec "$cid" psql -U postgres -d "$1" -v ON_ERROR_STOP=1 -AtXc "$2"
+}
+
+# Fails unless $2, a number a query returned, is a whole number. bash evaluates
+# anything else in arithmetic as an expression, and a database superuser, or a
+# dump's database settings, control what a query returns. The queries name
+# pg_catalog's functions for the same reason.
+require_number() {
+  if [[ ! $2 =~ ^[0-9]+$ ]]; then
+    echo "PostgreSQL returned something other than a whole number for $1" >&2
+    exit 1
+  fi
+}
+
+# Removes the locks of restic processes that were killed, as bin/backup does.
+restic unlock
+
+# 1. The latest snapshot. restic prints it as one line of JSON whose first key
+# is its time; the host has no jq.
+snapshot=$(restic --retry-lock 1h snapshots --json --tag nightly latest)
+snapshot_time=$(sed -n 's/^\[{"time":"\([^"]*\)".*/\1/p' <<< "$snapshot")
+snapshot_id=$(sed -n 's/.*"id":"\([0-9a-f]\{64\}\)".*/\1/p' <<< "$snapshot")
+if [[ -z $snapshot_time || -z $snapshot_id ]]; then
+  echo "The repository has no nightly snapshot" >&2
+  exit 1
+fi
+snapshot_epoch=$(date -u -d "$snapshot_time" +%s)
+age_hours=$(((EPOCHSECONDS - snapshot_epoch) / 3600))
+if ((EPOCHSECONDS - snapshot_epoch > max_snapshot_age_hours * 3600)); then
+  echo "The latest nightly snapshot, ${snapshot_id:0:8} from $snapshot_time, is $age_hours hours old" >&2
+  exit 1
+fi
+echo "Latest nightly snapshot: ${snapshot_id:0:8} from $snapshot_time, $age_hours hours old"
+
+# Docker keeps the restore container's volume under its data root.
+database_bytes=$(live_psql 'select pg_catalog.pg_database_size(pg_catalog.current_database())')
+require_number 'the database size' "$database_bytes"
+docker_root=$(docker info --format '{{.DockerRootDir}}')
+free_bytes=$(df --output=avail -B1 "$docker_root" | tail -n 1)
+needed_bytes=$((database_bytes + restore_headroom_bytes))
+if ((free_bytes < needed_bytes)); then
+  echo "Not restoring: $docker_root has $((free_bytes / mebibyte)) MiB free, and the restore needs about $((needed_bytes / mebibyte)) MiB" >&2
+  exit 1
+fi
+
+# 2. The restore. The container has no network, and limits that leave
+# production its share of the host. Its name is fixed, so a container left by a
+# run that was killed fails the next run instead of piling up: remove it with
+# `docker rm -f -v node-effect-template-verify-backup`. The copy is thrown
+# away, so commits do not wait for the WAL to reach the disk, and the WAL leaves
+# out full pages. fsync stays on: without it PostgreSQL also stops starting
+# writeback early, the restore's dirty pages fill the memory limit, and the
+# kernel can kill PostgreSQL while it writes them out.
+image=$(bin/compose config --images postgresql)
+cid=
+cleanup() {
+  if [[ -n $cid ]]; then
+    docker rm -f -v "$cid" > /dev/null
+  fi
+}
+# Nothing can connect without a network, hence trust. The socket directory is
+# writable by everyone, as the image creates it, whatever its postgres user's
+# uid.
+cid=$(docker create --name "$container" --network none \
+  --memory 512m --cpus 1 --pids-limit 128 \
+  --user postgres --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+  --tmpfs /var/run/postgresql:mode=3777 --tmpfs /tmp:size=16m \
+  -e POSTGRES_HOST_AUTH_METHOD=trust \
+  "$image" -c synchronous_commit=off -c full_page_writes=off -c max_wal_size=256MB)
+docker start "$cid" > /dev/null
+
+deadline=$((SECONDS + ready_timeout_seconds))
+until docker exec "$cid" pg_isready -h 127.0.0.1 -q 2> /dev/null; do
+  if ((SECONDS >= deadline)); then
+    docker logs --tail 20 "$cid" >&2
+    echo "PostgreSQL in the restore container did not start within $ready_timeout_seconds seconds" >&2
+    exit 1
+  fi
+  sleep 1
+done
+
+echo "Restoring snapshot ${snapshot_id:0:8} into $image"
+restic --retry-lock 1h dump "$snapshot_id" "$dump" |
+  docker exec -i "$cid" pg_restore -U postgres --no-owner --no-privileges --create --exit-on-error -d postgres
+
+# --create restores the database under its own name.
+database=$(restored_psql postgres "select datname from pg_database where not datistemplate and datname <> 'postgres'")
+if [[ -z $database || $database == *$'\n'* ]]; then
+  echo "Expected the restore to create one database, found: ${database:-none}" >&2
+  exit 1
+fi
+
+# 3. The migrations. The snapshot's time is when its upload started, not when
+# pg_dump read the database, so the live journal is the reference rather than
+# releases.log: it may have more migrations, never fewer.
+journal='select pg_catalog.count(*) from drizzle.__drizzle_migrations'
+restored_migrations=$(restored_psql "$database" "$journal")
+require_number 'the restored migrations' "$restored_migrations"
+live_migrations=$(live_psql "$journal")
+require_number 'the live migrations' "$live_migrations"
+if ((restored_migrations == 0 || restored_migrations > live_migrations)); then
+  echo "The backup has $restored_migrations migrations and the live database $live_migrations" >&2
+  exit 1
+fi
+echo "Migrations: $restored_migrations in the backup, $live_migrations in the live database"
+
+# Counting each table's rows reads all of it.
+row_counts=$(restored_psql "$database" "
+  select format('%s %s', table_name, (xpath('/row/c/text()', query_to_xml(
+    format('select count(*) as c from %I.%I', table_schema, table_name), false, true, '')))[1])
+  from information_schema.tables
+  where table_schema = 'public' and table_type = 'BASE TABLE'
+  order by table_name")
+if [[ -z $row_counts ]]; then
+  echo "The restored database $database has no tables in public" >&2
+  exit 1
+fi
+echo "Rows per table in the restored $database:"
+echo "$row_counts"
+
+cleanup
+cid=
+
+# 4. The repository, once the restore has freed its disk.
+check_group=$((EPOCHSECONDS / seconds_per_week % check_groups + 1))
+restic --retry-lock 1h check --read-data-subset "$check_group/$check_groups"

@@ -1,0 +1,121 @@
+name: Release
+
+# Production release on every push to main, with manual dispatch available: the
+# full CI first, then the image (publish), then bin/release on the server
+# (deploy) with the image's digest. See deploy/vps/README.md for the server side.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# Releases queue in order; none is cancelled halfway.
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  # Checks, static checks, the image smoke test and scan, and the PostgreSQL
+  # tests gate every release.
+  ci:
+    # `./` already calls ci.yml from this run's commit. zizmor prefers GitHub's
+    # `$/` self-repository syntax, but actionlint 1.7.12 rejects it and would no
+    # longer check this call; switch once actionlint accepts it.
+    uses: ./.github/workflows/ci.yml # zizmor: ignore[self-repository] see above
+    permissions:
+      contents: read
+
+  # Builds, smoke-tests and publishes the image. It can write packages but never
+  # sees the server's SSH key.
+  publish:
+    needs: ci
+    # PRODUCTION_HOST must be a repository variable: this condition is evaluated
+    # before a job enters its environment. Until it is set, pushes to main run
+    # CI only.
+    if: github.ref == 'refs/heads/main' && vars.PRODUCTION_HOST != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.publish.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Image names must be lowercase; the server's APP_IMAGE_REPOSITORY must
+      # match this repository.
+      - name: Name the image
+        run: |
+          echo "APP_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      # x86-64 only; deploy/vps/README.md explains why. bin/release refuses an
+      # image whose revision label is not the commit it releases.
+      #
+      # No build cache: every job that runs on main can write cache entries
+      # that main's later runs read, whatever its token's permissions. Read
+      # here, they would let a compromised dev dependency or tool in any CI
+      # job plant layers in the released image.
+      - name: Build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          platforms: linux/amd64
+          tags: ${{ env.APP_IMAGE }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+      - name: Smoke-test the image
+        run: bash scripts/smoke-docker.sh
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # The digest of exactly what was pushed, from `docker push` itself. The
+      # server releases that digest, so a later push to the same tag cannot
+      # change what it runs.
+      - name: Publish image
+        id: publish
+        run: |
+          output=$(docker push "$APP_IMAGE")
+          printf '%s\n' "$output"
+          digest=$(printf '%s\n' "$output" \
+            | sed -n -E "s/^${GITHUB_SHA}: digest: (sha256:[0-9a-f]{64}) size: [0-9]+$/\1/p")
+          if [[ ! $digest =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::docker push printed no digest for $APP_IMAGE"
+            exit 1
+          fi
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Published \`$APP_IMAGE@$digest\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # Sends the commit and digest to the server. It holds the SSH key, runs no
+  # repository code and its token has no permissions.
+  deploy:
+    needs: publish
+    if: github.ref == 'refs/heads/main' && vars.PRODUCTION_HOST != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    permissions: {}
+    steps:
+      # The deploy key's forced command is bin/release, which receives only the
+      # commit and the image digest, and takes everything else from that image
+      # and the server's .env.
+      - name: Release on the server
+        env:
+          SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          KNOWN_HOSTS: ${{ vars.PRODUCTION_KNOWN_HOSTS }}
+          HOST: ${{ vars.PRODUCTION_HOST }}
+          DIGEST: ${{ needs.publish.outputs.digest }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/release
+          chmod 600 ~/.ssh/release
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -n -i ~/.ssh/release -o IdentitiesOnly=yes -o BatchMode=yes \
+            "deploy@$HOST" "$GITHUB_SHA $DIGEST"

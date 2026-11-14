@@ -1,0 +1,62 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext"],
+    "types": ["node"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "useDefineForClassFields": true,
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
+    "skipLibCheck": true,
+    // Effect's diagnostics, which `pnpm typecheck` reports through the tsc that
+    // @effect/tsgo builds (scripts/typecheck.ts); plain tsc ignores this entry.
+    // Every rule keeps its default severity unless set here, and an error or a
+    // warning fails the type check.
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnosticSeverity": {
+          // Errors by default already. They are why the type check runs
+          // Effect's tsc: an Effect built and never run, `yield` written for
+          // `yield*`, and an Effect returned to a plain Vitest `it`, which
+          // passes without running it. Set here so an update that lowers a
+          // default does not let them through.
+          "floatingEffect": "error",
+          "missingStarInYieldEffectGen": "error",
+          "floatingEffectInVitest": "error",
+          // Effect 4 marks effect/http, effect/http-api, effect/sql,
+          // @effect/sql-pg, @effect/platform-node and @effect/vitest unstable.
+          // The template is built on them, so this rule would flag about 250
+          // places, every `it` in the tests among them.
+          "unstableApiUsage": "off"
+        },
+        // Suggestions never fail the type check; left in, they would print on
+        // every passing run.
+        "includeSuggestionsInTsc": false
+      }
+    ]
+  },
+  "include": [
+    "apps",
+    "packages",
+    "scripts",
+    "drizzle.config.ts",
+    "vite.config.ts"
+  ],
+  // Code written to fail the type check, which scripts/typecheck.test.ts
+  // checks on its own.
+  "exclude": ["**/node_modules", "scripts/fixtures"]
+}

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Docker Compose for the production project with its secrets and, after the
+# first release, the current image tag.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+env_files=(--env-file .env)
+if [[ -f release.env ]]; then
+  env_files+=(--env-file release.env)
+fi
+exec docker compose "${env_files[@]}" "$@"

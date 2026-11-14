@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly node-effect-template backup check
+
+[Timer]
+# Two hours after Sunday's nightly backup.
+OnCalendar=Sun *-*-* 05:00:00
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

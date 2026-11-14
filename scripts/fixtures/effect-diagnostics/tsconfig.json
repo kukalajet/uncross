@@ -1,0 +1,7 @@
+{
+  // The root config, plugin settings included, for canary.ts alone. The root's
+  // `include` and `exclude` would leave canary.ts out.
+  "extends": "../../../tsconfig.json",
+  "files": ["canary.ts"],
+  "include": []
+}

@@ -1,0 +1,226 @@
+#!/usr/bin/env bash
+# Releases one commit's image by digest: pulls <APP_IMAGE_REPOSITORY>@<digest>,
+# checks that it was built from the commit, takes compose.yml and bin/ for this
+# directory from it, runs migrations once, restarts the application and checks
+# that it serves. If that check fails, it restores the previous release.
+#
+#   release <commit-sha> <sha256:digest>   what CI sends
+#   release <commit-sha>                   a commit releases.log has released
+#
+# CI runs it through the deploy key's forced command, which passes the request
+# in SSH_ORIGINAL_COMMAND; operators pass arguments to roll back or re-release.
+# The image repository comes from .env, and standard input is never read. Once
+# the request is valid, the output also goes to release-output.log.
+set -euo pipefail
+
+if [[ $EUID -eq 0 ]]; then
+  exec runuser -u deploy -- "$0" "$@"
+fi
+exec < /dev/null
+
+request=${SSH_ORIGINAL_COMMAND:-$*}
+if [[ ! $request =~ ^([0-9a-f]{40})( (sha256:[0-9a-f]{64}))?$ ]]; then
+  echo "usage: release <40-character commit sha> [sha256:<64-character digest>]" >&2
+  exit 2
+fi
+sha=${BASH_REMATCH[1]}
+digest=${BASH_REMATCH[3]}
+
+cd "$(dirname "$0")/.."
+# bin/monitor holds the lock shared for the few seconds of its check, so wait
+# that long; another release holds it for minutes.
+exec 9> release.lock
+flock -w 60 9 || {
+  echo "Another release is running" >&2
+  exit 1
+}
+
+repository=$(sed -n 's/^APP_IMAGE_REPOSITORY=//p' .env | tail -n 1)
+if [[ ! $repository =~ ^[a-z0-9][a-z0-9._/:-]*$ ]]; then
+  echo "Set APP_IMAGE_REPOSITORY in .env, lowercase and unquoted" >&2
+  exit 1
+fi
+# Compose prefers the environment to env files. The repository is the one
+# validated above; the tag and digest must come from release.env, so that
+# restoring the previous release.env restores the previous image.
+export APP_IMAGE_REPOSITORY=$repository
+unset APP_IMAGE_TAG APP_IMAGE_DIGEST
+
+if [[ -z $digest && -f releases.log ]]; then
+  digest=$(awk -v sha="$sha" '$2 == sha && $4 == "RELEASED" { digest = $3 } END { print digest }' releases.log)
+fi
+if [[ ! $digest =~ ^sha256:[0-9a-f]{64}$ ]]; then
+  echo "releases.log has no release of $sha; pass its image digest: release $sha sha256:<digest>" >&2
+  exit 2
+fi
+image=$repository@$digest
+
+# From here on the release runs to the end even when the deploy job is
+# cancelled or the SSH connection drops. Either closes this script's output,
+# and the next write to it would end the script, possibly after installing the
+# release and before restoring the previous one. tee -p keeps copying the
+# output to release-output.log after the connection has gone.
+trap '' HUP
+exec > >(tee -p release-output.log) 2>&1
+
+staging=$(mktemp -d .release.XXXXXX)
+container=
+cleanup() {
+  if [[ -n $container ]]; then
+    docker rm "$container" > /dev/null || true
+  fi
+  rm -rf "$staging"
+}
+trap cleanup EXIT
+
+# A digest names one image, whatever happens to the tags in the registry. The
+# label ties it to the commit, which the Release workflow sets when it builds.
+docker pull --quiet "$image" > /dev/null
+revision=$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")
+if [[ $revision != "$sha" ]]; then
+  echo "$image was built from ${revision:-an unlabelled commit}, not $sha" >&2
+  exit 1
+fi
+# Pruning below works on tags.
+docker tag "$image" "$repository:$sha"
+
+container=$(docker create "$image")
+docker cp --quiet "$container:/app/deploy/vps/compose.yml" "$staging/compose.yml"
+docker cp --quiet "$container:/app/deploy/vps/bin" "$staging/bin"
+docker rm "$container" > /dev/null
+container=
+if [[ ! -x $staging/bin/release || ! -x $staging/bin/compose ]]; then
+  echo "$image has no deploy/vps/bin/release or bin/compose" >&2
+  exit 1
+fi
+printf 'APP_IMAGE_TAG=%s\nAPP_IMAGE_DIGEST=%s\n' "$sha" "$digest" > "$staging/release.env"
+
+# The release's own compose.yml and image, with this directory's .env, until
+# its migration has succeeded.
+staged() {
+  docker compose -f "$staging/compose.yml" --project-directory . \
+    --env-file .env --env-file "$staging/release.env" "$@"
+}
+staged config --quiet
+staged pull --quiet
+if ! staged --profile release run --rm -T migrate; then
+  echo "The migration of $sha failed; the installed release and its files are unchanged" >&2
+  exit 1
+fi
+
+# Moves compose.yml, bin/ and release.env from the directory $1 into place.
+# Renaming leaves the file this script runs from untouched.
+install_files() {
+  mv -f "$1/compose.yml" compose.yml
+  for file in bin/*; do
+    if [[ ! -e $1/$file ]]; then
+      rm -f "$file"
+    fi
+  done
+  mv -f "$1"/bin/* bin/
+  mv -f "$1/release.env" release.env
+}
+
+# Only now take the release's files, so a failed migration leaves the previous
+# ones in place. Keep those in .previous/ to restore if this release fails its
+# check; without release.env there is no previous release to restore.
+previous=
+previous_digest=
+if [[ -f release.env ]]; then
+  previous=$(sed -n 's/^APP_IMAGE_TAG=//p' release.env)
+  previous_digest=$(sed -n 's/^APP_IMAGE_DIGEST=//p' release.env)
+fi
+rm -rf .previous
+mkdir .previous
+cp -pR compose.yml bin .previous/
+if [[ -n $previous ]]; then
+  cp -p release.env .previous/
+fi
+install_files "$staging"
+
+# Succeeds when the installed release serves: its containers are up, with the
+# API's and the tunnel's healthchecks passing, the API is ready, and the worker
+# and the tunnel keep running. Called as a condition, where `set -e` does not
+# apply, so each step returns on failure itself.
+verify() {
+  bin/compose up -d --wait --wait-timeout 180 api worker cloudflared || return 1
+
+  # The API's healthcheck is liveness only; readiness also needs the database.
+  # Nothing is published on the host, so ask from inside the container.
+  local deadline=$((SECONDS + 30))
+  until bin/compose exec -T api node -e "
+    fetch('http://127.0.0.1:8000/health/ready', { signal: AbortSignal.timeout(2000) })
+      .then((response) => process.exit(response.status === 200 ? 0 : 1), () => process.exit(1))
+  " 2> /dev/null; do
+    if ((SECONDS >= deadline)); then
+      echo "The API did not become ready within 30 seconds" >&2
+      return 1
+    fi
+    sleep 2
+  done
+
+  # `up --wait` accepts a service without a healthcheck once its container has
+  # started, even one that exits at once and restarts in a loop, and the tunnel
+  # can drop after its first check. The worker and the tunnel must stay
+  # running, without another restart, for a while longer.
+  local service after
+  local -A before
+  for service in worker cloudflared; do
+    before[$service]=$(state "$service") || return 1
+  done
+  sleep 15
+  for service in worker cloudflared; do
+    after=$(state "$service") || return 1
+    if [[ ${before[$service]} != running* || $after != "${before[$service]}" ]]; then
+      echo "$service is not running steadily (status and restarts: ${before[$service]}, then $after)" >&2
+      return 1
+    fi
+  done
+}
+state() {
+  docker inspect --format '{{.State.Status}} {{.RestartCount}}' \
+    "$(bin/compose ps --all -q "$1")"
+}
+log() {
+  echo "$(date -u +%FT%TZ) $sha $digest $1" >> releases.log
+}
+
+if ! verify; then
+  log FAILED
+  if [[ -z $previous ]]; then
+    echo "Release $sha failed its check and stays installed: there is no previous release to restore" >&2
+    exit 1
+  fi
+  echo "Release $sha failed its check; restoring $previous" >&2
+  install_files .previous
+  rm -rf .previous
+  if ! verify; then
+    echo "ROLLBACK FAILED: $previous is installed again but failed its check too. Production needs attention: bin/compose ps, bin/compose logs" >&2
+    exit 1
+  fi
+  echo "Rolled back to $previous; release $sha is not installed" >&2
+  exit 1
+fi
+log RELEASED
+
+# Keep the images of the three latest releases and of the previous one, so a
+# rollback has its image at hand.
+keep=" $previous $(tac releases.log | awk '$4 == "RELEASED" && !seen[$2]++ && kept++ < 3 { print $2 }' | tr '\n' ' ')"
+while read -r tag; do
+  if [[ $tag =~ ^[0-9a-f]{40}$ && $keep != *" $tag "* ]]; then
+    docker image rm "$repository:$tag" > /dev/null || echo "Could not remove $repository:$tag" >&2
+  fi
+done < <(docker image ls "$repository" --format '{{.Tag}}')
+
+# Then the untagged ones: an image refused for its label, or one whose tag a
+# newer image of the same commit took over. The previous release's image can be
+# one of them; keep it. Without --all, Docker's classic image store does not
+# list untagged images.
+images=$(docker image ls --all --digests "$repository" --format '{{.Tag}} {{.Digest}}')
+keep=" $digest $previous_digest $(awk '$1 != "<none>" { print $2 }' <<< "$images" | tr '\n' ' ')"
+while read -r tag image_digest; do
+  if [[ $tag == "<none>" && $image_digest =~ ^sha256:[0-9a-f]{64}$ && $keep != *" $image_digest "* ]]; then
+    docker image rm "$repository@$image_digest" > /dev/null || echo "Could not remove $repository@$image_digest" >&2
+  fi
+done <<< "$images"
+echo "Released $sha"

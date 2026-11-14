@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# Checks the host and the production services, every 5 minutes, as root from
+# the monitor service. Reads /etc/node-effect-template/monitor.env and reports
+# to MONITOR_HEARTBEAT_URL through bin/heartbeat.sh: the URL when every check
+# passes, <URL>/fail with one line per problem otherwise. A problem is:
+#
+# - memory in use above MONITOR_MEMORY_PERCENT (90), counting MemAvailable as
+#   free
+# - a filesystem holding / or Docker's data above MONITOR_DISK_PERCENT (80)
+# - Docker not answering
+# - a service in compose.yml without a running container, or with a failing
+#   healthcheck
+# - a container that Docker restarted since the last check
+# - the API not ready, asked the way bin/release asks
+#
+# Until the first release, only the host and Docker are checked. During a
+# release nothing is checked or reported: bin/release checks the services
+# itself, and the switch's grace period outlasts a release.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+# bin/release holds release.lock while it runs. A shared lock cannot be taken
+# meanwhile, and makes a release that starts during the check wait for it.
+# Opening the file to read never creates it: a release.lock owned by root
+# would stop deploy from opening it.
+if [[ -f release.lock ]]; then
+  exec 9< release.lock
+  flock -n -s 9 || exit 0
+fi
+
+# shellcheck source=deploy/vps/bin/heartbeat.sh
+source bin/heartbeat.sh
+heartbeat_init "${MONITOR_HEARTBEAT_URL:-}"
+# Lets a waiting release go before the report, which can take a minute.
+cleanup() {
+  exec 9<&-
+}
+
+disk_percent=${MONITOR_DISK_PERCENT:-80}
+memory_percent=${MONITOR_MEMORY_PERCENT:-90}
+if [[ ! $disk_percent =~ ^[0-9]+$ || ! $memory_percent =~ ^[0-9]+$ ]]; then
+  echo "MONITOR_DISK_PERCENT and MONITOR_MEMORY_PERCENT must be whole numbers" >&2
+  exit 1
+fi
+state_file=${STATE_DIRECTORY:-/var/lib/node-effect-template-monitor}/restarts
+
+problems=0
+problem() {
+  echo "$1" >&2
+  problems=$((problems + 1))
+}
+
+# Prints the mount point of the filesystem holding $1, and how full it is.
+filesystem_use() {
+  local usage
+  usage=$(df --output=target,pcent "$1" | tail -n 1)
+  echo "${usage%\%}"
+}
+
+check_filesystem() {
+  local mount=$1 used=$2
+  if ((used > disk_percent)); then
+    problem "Disk: $mount is $used% full, above $disk_percent%"
+  fi
+}
+
+meminfo=$(awk '$1 == "MemTotal:" { total = $2 } $1 == "MemAvailable:" { available = $2 } END { print total, available }' /proc/meminfo)
+read -r memory_total memory_available <<< "$meminfo"
+memory_used=$((100 - memory_available * 100 / memory_total))
+if ((memory_used > memory_percent)); then
+  problem "Memory: $memory_used% in use, above $memory_percent%"
+fi
+
+read -r root_mount root_used <<< "$(filesystem_use /)"
+check_filesystem "$root_mount" "$root_used"
+
+# Fails the check, after the host's problems, when Docker does not answer.
+docker_root=$(docker info --format '{{.DockerRootDir}}')
+read -r docker_mount docker_used <<< "$(filesystem_use "$docker_root")"
+if [[ $docker_mount != "$root_mount" ]]; then
+  check_filesystem "$docker_mount" "$docker_used"
+fi
+
+# Prints one line per container of the project: service, ID, status, health
+# (none without a healthcheck) and restart count. A container without a
+# healthcheck has no Health key, which only `index` reads without an error.
+list_containers() {
+  local ids
+  ids=$(bin/compose ps --all -q)
+  if [[ -n $ids ]]; then
+    # shellcheck disable=SC2086 # one argument per container ID
+    docker inspect --format '{{index .Config.Labels "com.docker.compose.service"}} {{.Id}} {{.State.Status}} {{with index .State "Health"}}{{.Status}}{{else}}none{{end}} {{.RestartCount}}' $ids
+  fi
+}
+
+# Restart counts are compared with the last check's, which the state file keeps
+# by container ID. A container created since then counts from zero. Docker
+# resets every count when it starts, and at boot the worker restarts until
+# PostgreSQL is ready, so the first check after Docker starts only records the
+# counts, as does the very first check.
+check_services() {
+  local services service id status health count before
+  local -A expected status_of count_before
+  services=$(bin/compose config --services)
+  for service in $services; do
+    expected[$service]=1
+  done
+
+  local docker_start docker_start_before=
+  docker_start=$(systemctl show --property InvocationID --value docker.service)
+  if [[ -f $state_file ]]; then
+    {
+      read -r docker_start_before
+      while read -r id count; do
+        count_before[$id]=$count
+      done
+    } < "$state_file"
+  fi
+
+  local containers
+  containers=$(list_containers)
+  install -d -m 700 "$(dirname "$state_file")"
+  echo "$docker_start" > "$state_file.new"
+  while read -r service id status health count; do
+    if [[ -z $service || -z ${expected[$service]:-} ]]; then
+      continue
+    fi
+    status_of[$service]=$status
+    echo "$id $count" >> "$state_file.new"
+
+    if [[ $status != running ]]; then
+      problem "$service is $status, not running"
+    elif [[ $health == unhealthy ]]; then
+      problem "$service is unhealthy: its healthcheck fails"
+    fi
+
+    before=${count_before[$id]:-0}
+    if ((count < before)); then
+      before=0
+    fi
+    if [[ $docker_start == "$docker_start_before" ]] && ((count > before)); then
+      problem "$service restarted since the last check: its restart count went from $before to $count"
+    fi
+  done <<< "$containers"
+  mv -f "$state_file.new" "$state_file"
+
+  for service in $services; do
+    if [[ -z ${status_of[$service]:-} ]]; then
+      problem "$service has no container"
+    fi
+  done
+
+  if [[ ${status_of[api]:-} == running ]] && ! bin/compose exec -T api node -e "
+    fetch('http://127.0.0.1:8000/health/ready', { signal: AbortSignal.timeout(2000) })
+      .then((response) => process.exit(response.status === 200 ? 0 : 1), () => process.exit(1))
+  " 2> /dev/null; then
+    problem "api is not ready: /health/ready did not answer 200 within 2 seconds"
+  fi
+}
+
+# Before the first release, only PostgreSQL is meant to run.
+if [[ -f release.env ]]; then
+  check_services
+fi
+
+if ((problems > 0)); then
+  exit 1
+fi

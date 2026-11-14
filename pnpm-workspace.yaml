@@ -1,0 +1,37 @@
+packages:
+  - apps/*
+  - packages/*
+
+catalog:
+  '@effect/platform-node': 4.0.6
+  '@effect/sql-pg': 4.0.6
+  '@effect/vitest': 4.0.6
+  drizzle-kit: 1.0.0-rc.5
+  drizzle-orm: 1.0.0-rc.5
+  effect: 4.0.6
+
+# Refuse a package version published with weaker evidence than an earlier
+# version of the same package, such as no provenance after releases that had
+# it, which is what a release published with a stolen npm token looks like.
+trustPolicy: no-downgrade
+
+# Keep one Vite and one Vitest copy so `vp test` and @effect/vitest share a
+# runner. scripts/toolchain.test.ts checks that both match what the installed
+# vite-plus pins.
+overrides:
+  vite@*: npm:@voidzero-dev/vite-plus-core@1.4.0
+  vitest@*: 5.0.5
+
+# @effect/platform-node declares redis as a required peer, but only its
+# NodeRedis module uses it.
+packageExtensions:
+  '@effect/platform-node@4':
+    peerDependenciesMeta:
+      redis:
+        optional: true
+
+# The vite override above points at vite-plus-core, whose version number does
+# not match the vite range that vitest declares.
+peerDependencyRules:
+  allowedVersions:
+    vite: '*'
