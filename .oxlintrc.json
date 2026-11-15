@@ -291,6 +291,22 @@
       }
     },
     {
+      "files": ["packages/core/**/test/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^\\.{1,2}/.*\\.[cm]?jsx?$",
+                "message": "Node runs the .ts files directly and does not map .js to .ts; end relative imports in .ts."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": [
         "**/test/**",
         "**/*.test.ts",
